@@ -352,6 +352,9 @@ function adminLogout() {
 
 // Admin Toast Messaging
 function showAdminToast(message, type = 'success') {
+    const existing = document.querySelectorAll('.toast');
+    existing.forEach(t => t.remove());
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
