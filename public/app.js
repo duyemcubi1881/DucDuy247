@@ -59,13 +59,13 @@ async function refreshState() {
 }
 
 function showLoginView() {
-    mainDashboard.style.display = 'none';
-    authSection.style.display = 'flex';
+    mainDashboard.classList.remove('visible');
+    authSection.classList.remove('hidden');
 }
 
 function showDashboardView() {
-    authSection.style.display = 'none';
-    mainDashboard.style.display = 'flex';
+    authSection.classList.add('hidden');
+    mainDashboard.classList.add('visible');
 }
 
 // Update DOM components
