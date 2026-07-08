@@ -131,6 +131,8 @@ function renderKeysTable(keysList) {
 // Hook Admin Auth and restocking forms
 function initAdminForms() {
     const loginForm = document.getElementById('adminLoginForm');
+    if (!loginForm) return;
+
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         const username = document.getElementById('adminUsername').value.trim();
@@ -149,8 +151,8 @@ function initAdminForms() {
                 localStorage.setItem('adminToken', adminToken);
                 
                 // Clear input
-                document.getElementById('adminUserField').value = '';
-                document.getElementById('adminPassField').value = '';
+                document.getElementById('adminUsername').value = '';
+                document.getElementById('adminPassword').value = '';
 
                 hideLoginOverlay();
                 refreshAdminState();
@@ -161,41 +163,6 @@ function initAdminForms() {
         } catch (err) {
             console.error(err);
             showAdminToast('Lỗi máy chủ admin khi đăng nhập!', 'error');
-        }
-    };
-
-    // Restock keys form
-    const restockForm = document.getElementById('restockForm');
-    restockForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const keyType = document.getElementById('restockType').value;
-        const rawKeys = document.getElementById('restockKeysText').value;
-
-        if (!rawKeys.trim()) {
-            showAdminToast('Vui lòng nhập danh sách key!', 'error');
-            return;
-        }
-
-        const keys = rawKeys.split('\n').map(k => k.trim()).filter(k => k.length > 0);
-
-        try {
-            const res = await fetch('/api/admin/restock-keys', {
-                method: 'POST',
-                headers: getAdminHeaders(),
-                body: JSON.stringify({ keyType, keys })
-            });
-            const data = await res.json();
-
-            if (data.status === 'success') {
-                showAdminToast(data.message, 'success');
-                document.getElementById('restockKeysText').value = '';
-                refreshAdminState();
-            } else {
-                showAdminToast(data.message, 'error');
-            }
-        } catch (err) {
-            console.error(err);
-            showAdminToast('Không thể nạp key!', 'error');
         }
     };
 }
@@ -401,3 +368,50 @@ function showAdminToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
+
+// Export functions to global scope
+window.switchTab = switchTab;
+window.filterKeysByType = filterKeysByType;
+window.handleAdminLogout = adminLogout;
+
+window.adminRestockKeys = async function() {
+    const keyType = document.getElementById('restockKeyType').value;
+    const rawKeys = document.getElementById('restockTextarea').value;
+
+    if (!rawKeys.trim()) {
+        showAdminToast('Vui lòng nhập danh sách key!', 'error');
+        return;
+    }
+
+    const keys = rawKeys.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+
+    try {
+        const res = await fetch('/api/admin/restock-keys', {
+            method: 'POST',
+            headers: getAdminHeaders(),
+            body: JSON.stringify({ keyType, keys })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            showAdminToast(data.message, 'success');
+            document.getElementById('restockTextarea').value = '';
+            refreshAdminState();
+        } else {
+            showAdminToast(data.message, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showAdminToast('Không thể nạp key!', 'error');
+    }
+};
+
+window.loadKeysList = function() {
+    const keyType = document.getElementById('viewKeyTypeSelect').value;
+    filterKeysByType(keyType);
+};
+
+window.clearAllKeysOfType = function() {
+    const keyType = document.getElementById('viewKeyTypeSelect').value;
+    clearAllKeys(keyType);
+};

@@ -7,16 +7,13 @@ let userCoins = 0;
 let isCreatingLink = false;
 
 // UI Tabs list
-const mainDashboard = document.getElementById('mainDashboard');
-const authSection = document.getElementById('authSection');
+const mainDashboard = document.getElementById('appContainer');
+const authSection = document.getElementById('authWrapper');
 
 // DOM Loader
 document.addEventListener('DOMContentLoaded', () => {
     // Check URL parameters for callback rewards from shortlinks
     handleUrlCallback();
-
-    // Init UI tabs navigation
-    initNavigation();
 
     // Hook forms submission
     initAuthForms();
@@ -76,9 +73,16 @@ function updateUI(data) {
     const user = data.user;
 
     // Set headers text info
-    document.getElementById('headerUsername').innerText = user.username;
-    document.getElementById('headerCoins').innerText = user.coins;
-    document.getElementById('sidebarCoins').innerText = user.coins;
+    const sidebarUser = document.getElementById('sidebarUsername');
+    if (sidebarUser) sidebarUser.innerText = user.username;
+
+    const avatarLetter = document.getElementById('avatarLetter');
+    if (avatarLetter && user.username) {
+        avatarLetter.innerText = user.username.charAt(0).toUpperCase();
+    }
+
+    const coinBalance = document.querySelector('.coin-balance-display');
+    if (coinBalance) coinBalance.innerText = user.coins;
 
     // Toggle Admin button strictly for admin users
     const adminTabBtn = document.getElementById('navAdminBtn');
@@ -91,71 +95,91 @@ function updateUI(data) {
         if (adminTitle) adminTitle.style.display = 'none';
     }
 
-    // Render task limits
-    document.getElementById('funlinkCount').innerText = `${user.funlinkCompletedToday}/2`;
-    document.getElementById('nhapmaCount').innerText = `${user.nhapmaCompletedToday}/4`;
+    // Render tasks dynamically
+    renderTasks(user);
 
-    // Tasks cards statuses
-    renderTaskCard('Funlink', user);
-    renderTaskCard('Nhập mã', user);
-
-    // Update shop stock badges
-    const stocks = data.stocks;
-    document.getElementById('stock-1h').innerText = `${stocks['1h']} key`;
-    document.getElementById('stock-2h').innerText = `${stocks['2h']} key`;
-    document.getElementById('stock-4h').innerText = `${stocks['4h']} key`;
-
-    // Toggle shop buttons depending on stock and coins
-    updateShopButtons(stocks);
+    // Render shop dynamically
+    renderShop(data);
 
     // Render lists
     renderHistoryLists(data.taskHistory, data.redeemHistory);
 }
 
-function renderTaskCard(provider, user) {
-    const card = document.getElementById(provider === 'Funlink' ? 'taskFunlinkCard' : 'taskNhapmaCard');
-    if (!card) return;
+function renderTasks(user) {
+    const tasksContainer = document.getElementById('tasksContainer');
+    if (!tasksContainer) return;
 
-    const limit = (provider === 'Funlink') ? 2 : 4;
-    const completed = (provider === 'Funlink') ? user.funlinkCompletedToday : user.nhapmaCompletedToday;
-    const isCompleted = completed >= limit;
+    tasksContainer.innerHTML = '';
 
-    const actionContainer = card.querySelector('.task-action-container');
-    actionContainer.innerHTML = '';
+    const tasks = [
+        {
+            provider: 'Funlink',
+            title: 'Nhiệm Vụ 1: Rút Gọn Funlink',
+            subtitle: 'Vượt link của nhà tài trợ Funlink để nhận xu thưởng.',
+            completed: user.funlinkCompletedToday,
+            limit: 2,
+            rewardText: 'Lượt 1: +200 xu, Lượt 2: +100 xu',
+            icon: '🔗'
+        },
+        {
+            provider: 'Nhập mã',
+            title: 'Nhiệm Vụ 2: Rút Gọn Nhập Mã',
+            subtitle: 'Vượt link của nhà tài trợ Nhapma.com để nhận xu thưởng.',
+            completed: user.nhapmaCompletedToday,
+            limit: 4,
+            rewardText: '+100 xu / lượt vượt thành công',
+            icon: '🔑'
+        }
+    ];
 
-    if (isCompleted) {
-        actionContainer.innerHTML = `<span class="task-badge danger">🚫 Đạt giới hạn hôm nay</span>`;
-        return;
-    }
+    tasks.forEach(task => {
+        const isCompleted = task.completed >= task.limit;
+        const activeTask = user.activeTask;
+        
+        let actionHtml = '';
+        if (isCompleted) {
+            actionHtml = `<span class="task-badge danger" style="padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">🚫 Hết lượt hôm nay</span>`;
+        } else if (activeTask && activeTask.provider === task.provider) {
+            actionHtml = `
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button class="btn btn-secondary" onclick="cancelActiveTask()" style="padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; border-radius: var(--border-radius-md); cursor: pointer; flex: 1;">Hủy</button>
+                    <button class="btn btn-primary" id="btnActiveRedirect" style="padding: 10px; background: #10b981; border: none; color: #fff; font-weight: 700; border-radius: var(--border-radius-md); cursor: pointer; flex: 2;">🚀 Bắt Đầu Vượt Link</button>
+                </div>
+            `;
+        } else if (activeTask) {
+            actionHtml = `<span class="task-badge warning" style="padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 12px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);">⏳ Đang làm nhiệm vụ khác</span>`;
+        } else {
+            actionHtml = isCreatingLink 
+                ? `<button class="btn btn-primary btn-loading" disabled style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700;">Đang tạo link...</button>`
+                : `<button class="btn btn-primary" onclick="startNewTask('${task.provider}')" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; background: var(--primary); color: #fff; border: none; cursor: pointer;">Nhận Nhiệm Vụ</button>`;
+        }
 
-    const activeTask = user.activeTask;
-
-    if (activeTask && activeTask.provider === provider) {
-        // Task in progress
-        actionContainer.innerHTML = `
-            <div style="display: flex; gap: 10px; width: 100%;">
-                <button class="btn btn-secondary" onclick="cancelActiveTask()" style="flex: 1;">Hủy</button>
-                <button class="btn btn-primary" id="btnActiveRedirect" style="flex: 2; background: #10b981;">
-                    🚀 Tiếp Tục Vượt Link
-                </button>
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        card.innerHTML = `
+            <div class="task-header" style="display: flex; align-items: center;">
+                <span class="task-icon" style="font-size: 32px; background: rgba(59, 130, 246, 0.05); padding: 10px; border-radius: var(--border-radius-md);">${task.icon}</span>
+                <span class="task-badge info" style="margin-left: auto; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 50px; background: rgba(59, 130, 246, 0.1); color: var(--primary);">${task.completed}/${task.limit} Lượt</span>
+            </div>
+            <div class="task-body" style="margin-top: 15px;">
+                <h3 class="task-title" style="font-size: 18px; font-weight: 700; color: var(--text-main);">${task.title}</h3>
+                <p class="task-subtitle" style="font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">${task.subtitle}</p>
+                <div class="task-reward-info" style="margin-top: 12px; font-size: 12px; font-weight: 600; color: #10b981;">🎁 Phần thưởng: ${task.rewardText}</div>
+            </div>
+            <div class="task-action-container" style="margin-top: 20px;">
+                ${actionHtml}
             </div>
         `;
-        // Setup direct click fallback
-        document.getElementById('btnActiveRedirect').addEventListener('click', () => {
-            showToast("Đang đưa bạn quay lại liên kết vượt...", "success");
-            // API will handle getting the actual token redirection
-            window.location.href = `/api/claim-reward?reward_token=${activeTask.token}&user=${encodeURIComponent(user.username)}`;
-        });
-    } else if (activeTask) {
-        // Another task active
-        actionContainer.innerHTML = `<span class="task-badge warning">⏳ Đang làm nhiệm vụ khác</span>`;
-    } else {
-        // Idle - Ready to start
-        if (isCreatingLink) {
-            actionContainer.innerHTML = `<button class="btn btn-primary btn-loading" disabled>Đang tạo link...</button>`;
-        } else {
-            actionContainer.innerHTML = `<button class="btn btn-primary" onclick="startNewTask('${provider}')">Nhận Nhiệm Vụ</button>`;
-        }
+
+        tasksContainer.appendChild(card);
+    });
+
+    const redirectBtn = document.getElementById('btnActiveRedirect');
+    if (redirectBtn && user.activeTask) {
+        redirectBtn.onclick = () => {
+            showToast("Đang đưa bạn đến liên kết vượt...", "success");
+            window.location.href = `/api/claim-reward?reward_token=${user.activeTask.token}&user=${encodeURIComponent(user.username)}`;
+        };
     }
 }
 
@@ -269,34 +293,63 @@ async function purchaseKey(keyType, price, label) {
     }
 }
 
-function updateShopButtons(stocks) {
+function renderShop(data) {
+    const shopContainer = document.getElementById('shopContainer');
+    if (!shopContainer) return;
+
+    shopContainer.innerHTML = '';
+
+    const user = data.user;
+    const stocks = data.stocks;
+    
+    const boughtCounts = { '1h': 0, '2h': 0, '4h': 0 };
+    data.redeemHistory.forEach(h => {
+        if (h.itemName.includes('1 Giờ')) boughtCounts['1h']++;
+        if (h.itemName.includes('2 Giờ')) boughtCounts['2h']++;
+        if (h.itemName.includes('4 Giờ')) boughtCounts['4h']++;
+    });
+
     const items = [
-        { type: '1h', price: 100, btnId: 'btnBuy1h' },
-        { type: '2h', price: 150, btnId: 'btnBuy2h' },
-        { type: '4h', price: 200, btnId: 'btnBuy4h' }
+        { type: '1h', label: 'Key Imgui Menu 1 Giờ', price: 100, stock: stocks['1h'], bought: boughtCounts['1h'] },
+        { type: '2h', label: 'Key Imgui Menu 2 Giờ', price: 150, stock: stocks['2h'], bought: boughtCounts['2h'] },
+        { type: '4h', label: 'Key Imgui Menu 4 Giờ', price: 200, stock: stocks['4h'], bought: boughtCounts['4h'] }
     ];
 
     items.forEach(item => {
-        const btn = document.getElementById(item.btnId);
-        if (!btn) return;
-
-        const stock = stocks[item.type];
-        const isOutOfStock = stock <= 0;
-        const canAfford = userCoins >= item.price;
-
+        const isOutOfStock = item.stock <= 0;
+        const canAfford = user.coins >= item.price;
+        
+        let btnHtml = '';
         if (isOutOfStock) {
-            btn.className = 'btn btn-secondary';
-            btn.innerText = 'Hết Hàng';
-            btn.disabled = true;
+            btnHtml = `<button class="btn btn-secondary" disabled style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; cursor: not-allowed; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-muted);">Hết Hàng</button>`;
         } else if (!canAfford) {
-            btn.className = 'btn btn-secondary';
-            btn.innerText = `Không Đủ Xu (Cần ${item.price} Xu)`;
-            btn.disabled = true;
+            btnHtml = `<button class="btn btn-secondary" disabled style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; cursor: not-allowed; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-muted);">Không Đủ Xu (Cần ${item.price} Xu)</button>`;
         } else {
-            btn.className = 'btn btn-primary';
-            btn.innerText = 'Đổi Ngay';
-            btn.disabled = false;
+            btnHtml = `<button class="btn btn-primary" onclick="purchaseKey('${item.type}', ${item.price}, '${item.label}')" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; background: var(--primary); color: #fff; border: none; cursor: pointer;">Đổi Ngay</button>`;
         }
+
+        const card = document.createElement('div');
+        card.className = 'shop-card';
+        card.innerHTML = `
+            <div class="shop-banner" style="background-image: url('menu_banner.png');">
+                <span class="shop-badge">Key VIP</span>
+            </div>
+            <div class="shop-body" style="padding: 24px; text-align: center;">
+                <h3 class="shop-title" style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">${item.label}</h3>
+                <div class="shop-price" style="font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 15px;">
+                    ${item.price} <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">Xu</span>
+                </div>
+                
+                <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
+                    <span>📦 Kho: <strong style="color: var(--text-main);">${item.stock} key</strong></span>
+                    <span>🛒 Đã mua: <strong style="color: var(--text-main);">${item.bought}</strong></span>
+                </div>
+                
+                ${btnHtml}
+            </div>
+        `;
+
+        shopContainer.appendChild(card);
     });
 }
 
@@ -438,30 +491,28 @@ function logout() {
     showLoginView();
     showToast('Đã đăng xuất khỏi tài khoản.', 'success');
 }
+window.handleLogout = logout;
 
 // Sidebar Navigation
-function initNavigation() {
+window.switchTab = function(tabId) {
     const navItems = document.querySelectorAll('.sidebar .nav-item');
-    const tabs = document.querySelectorAll('.tab-content');
-
     navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const targetTab = item.getAttribute('data-tab');
-            if (!targetTab) return; // Allow admin panel redirect links
-
-            navItems.forEach(i => i.classList.remove('active'));
+        if (item.getAttribute('data-tab') === tabId) {
             item.classList.add('active');
-
-            tabs.forEach(tab => {
-                if (tab.id === targetTab) {
-                    tab.classList.add('active');
-                } else {
-                    tab.classList.remove('active');
-                }
-            });
-        });
+        } else {
+            item.classList.remove('active');
+        }
     });
-}
+
+    const panels = document.querySelectorAll('.tab-panel');
+    panels.forEach(panel => {
+        if (panel.id === tabId) {
+            panel.classList.add('active');
+        } else {
+            panel.classList.remove('active');
+        }
+    });
+};
 
 // --- POPUPS & MODALS ---
 function showKeyModal(packageName, key) {
