@@ -55,15 +55,27 @@ async function refreshAdminState() {
 function showLoginOverlay() {
     const auth = document.getElementById('adminAuthWrapper');
     const app = document.getElementById('adminAppContainer');
-    if (app) app.classList.remove('visible');
-    if (auth) auth.classList.remove('hidden');
+    if (app) {
+        app.classList.remove('visible');
+        app.style.display = 'none';
+    }
+    if (auth) {
+        auth.classList.remove('hidden');
+        auth.style.display = 'flex';
+    }
 }
 
 function hideLoginOverlay() {
     const auth = document.getElementById('adminAuthWrapper');
     const app = document.getElementById('adminAppContainer');
-    if (auth) auth.classList.add('hidden');
-    if (app) app.classList.add('visible');
+    if (auth) {
+        auth.classList.add('hidden');
+        auth.style.display = 'none';
+    }
+    if (app) {
+        app.classList.add('visible');
+        app.style.display = 'flex';
+    }
 }
 
 // Update Admin Control stats and lists
