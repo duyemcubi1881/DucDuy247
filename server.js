@@ -106,6 +106,17 @@ async function initDb() {
             );
         `);
 
+        // Alter tables to add columns if they don't exist (safety migrate)
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS funlink_completed_today INT DEFAULT 0;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS nhapma_completed_today INT DEFAULT 0;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS last_task_reset_date VARCHAR(15);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_token VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_provider VARCHAR(50);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_started_at BIGINT;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INT DEFAULT 0;
+        `);
+
         // Check if default admin account exists
         const adminRes = await pool.query("SELECT id FROM users WHERE username = 'admin'");
         if (adminRes.rowCount === 0) {
