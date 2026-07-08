@@ -1,3 +1,6 @@
+// Force Dark Mode by default
+document.documentElement.setAttribute('data-theme', 'dark');
+
 // CLIENT-SIDE ENGINE (Node.js + PostgreSQL Backend Integrated)
 
 // State parameters

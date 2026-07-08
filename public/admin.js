@@ -1,3 +1,6 @@
+// Force Dark Mode by default
+document.documentElement.setAttribute('data-theme', 'dark');
+
 // ADMIN PANEL CONTROLLER (Node.js + PostgreSQL Backend Integrated)
 
 let adminToken = localStorage.getItem('adminToken') || '';
