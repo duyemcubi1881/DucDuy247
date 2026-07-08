@@ -384,51 +384,47 @@ function renderShop(data) {
 }
 
 function renderHistoryLists(taskHistory, redeemHistory) {
-    const taskList = document.getElementById('taskList');
-    const redeemList = document.getElementById('redeemList');
+    const taskBody = document.getElementById('taskHistoryBody');
+    const redeemBody = document.getElementById('redeemHistoryBody');
 
-    if (taskList) {
-        taskList.innerHTML = '';
+    if (taskBody) {
+        taskBody.innerHTML = '';
         if (taskHistory.length === 0) {
-            taskList.innerHTML = `<div class="empty-state">Chưa làm nhiệm vụ nào.</div>`;
+            taskBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: var(--text-muted); padding: 20px;">Chưa làm nhiệm vụ nào.</td></tr>`;
         } else {
             taskHistory.forEach(item => {
                 const date = new Date(item.timestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
-                const row = document.createElement('div');
-                row.className = 'history-item';
-                row.innerHTML = `
-                    <div>
-                        <span style="font-weight: 700; color: var(--text-main);">${item.provider}</span>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${date}</div>
-                    </div>
-                    <span style="font-weight: 700; color: #10b981;">+$${item.coinsEarned} Xu</span>
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${date}</td>
+                    <td><strong>${item.provider}</strong></td>
+                    <td style="color: #10b981; font-weight: 700;">+${item.coinsEarned} Xu</td>
                 `;
-                taskList.appendChild(row);
+                taskBody.appendChild(tr);
             });
         }
     }
 
-    if (redeemList) {
-        redeemList.innerHTML = '';
+    if (redeemBody) {
+        redeemBody.innerHTML = '';
         if (redeemHistory.length === 0) {
-            redeemList.innerHTML = `<div class="empty-state">Chưa đổi thưởng lần nào.</div>`;
+            redeemBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">Chưa đổi key lần nào.</td></tr>`;
         } else {
             redeemHistory.forEach(item => {
                 const date = new Date(item.timestamp).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
-                const row = document.createElement('div');
-                row.className = 'history-item';
-                row.innerHTML = `
-                    <div>
-                        <span style="font-weight: 700; color: var(--text-main);">${item.itemName}</span>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${date}</div>
-                        <div class="key-box-row" style="margin-top: 6px;">
-                            <span class="key-display-text" id="displayKey-${item.timestamp}">${item.key}</span>
-                            <button class="copy-key-btn" onclick="copyKeyText('${item.key}')">📋 Sao chép</button>
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${date}</td>
+                    <td><strong>${item.itemName}</strong></td>
+                    <td style="color: #ef4444; font-weight: 700;">-${item.cost} Xu</td>
+                    <td>
+                        <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
+                            <code class="key-code-badge" style="font-family: monospace; font-size: 13px; font-weight: 700; color: #10b981;">${item.key}</code>
+                            <button class="action-btn btn-reset" onclick="copyKeyText('${item.key}')" style="padding: 4px 10px; font-size: 11px;">📋 Copy</button>
                         </div>
-                    </div>
-                    <span style="font-weight: 700; color: #ef4444;">-${item.cost} Xu</span>
+                    </td>
                 `;
-                redeemList.appendChild(row);
+                redeemBody.appendChild(tr);
             });
         }
     }
