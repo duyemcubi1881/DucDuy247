@@ -1,5 +1,5 @@
-// Force Dark Mode by default
-document.documentElement.setAttribute('data-theme', 'dark');
+// Force Light Mode by default
+document.documentElement.setAttribute('data-theme', 'light');
 
 // CLIENT-SIDE ENGINE (Node.js + PostgreSQL Backend Integrated)
 
@@ -587,11 +587,12 @@ function copyKeyText(text) {
 
 // Global Custom Toast System
 function showToast(message, type = 'success') {
-    const existing = document.querySelectorAll('.toast');
+    const existing = document.querySelectorAll('.toast-notice');
     existing.forEach(t => t.remove());
 
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    const typeClass = type === 'success' ? 'success-type' : 'error-type';
+    toast.className = `toast-notice ${typeClass}`;
     toast.innerHTML = `
         <span class="toast-icon">${type === 'success' ? '✔' : '❌'}</span>
         <span class="toast-message">${message}</span>
@@ -600,13 +601,11 @@ function showToast(message, type = 'success') {
     document.body.appendChild(toast);
 
     setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
+        toast.classList.add('show');
     }, 10);
 
     setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(20px)';
-        setTimeout(() => toast.remove(), 300);
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
     }, 4000);
 }
