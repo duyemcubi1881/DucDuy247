@@ -283,9 +283,13 @@ app.get('/api/state', async (req, res) => {
 
         // Key stocks counts
         const stocks = {};
+        const purchased = {};
         for (const type of ['1h', '2h', '4h']) {
             const countRes = await pool.query("SELECT COUNT(*) as count FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 0", [type]);
             stocks[type] = parseInt(countRes.rows[0].count, 10);
+
+            const purchasedRes = await pool.query("SELECT COUNT(*) as count FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 1", [type]);
+            purchased[type] = parseInt(purchasedRes.rows[0].count, 10);
         }
 
         res.json({
@@ -304,7 +308,8 @@ app.get('/api/state', async (req, res) => {
             },
             taskHistory,
             redeemHistory,
-            stocks
+            stocks,
+            purchased
         });
     } catch (err) {
         console.error(err);
