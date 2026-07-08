@@ -352,31 +352,37 @@ function renderHistoryLists(taskHistory, redeemHistory) {
 }
 
 // Authentication forms handlers
+let currentMode = 'login'; // Global authentication mode
+
+window.handleAuthToggle = function(isRegister) {
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    const authBtn = document.getElementById('authBtn');
+    const authToggleText = document.getElementById('authToggleText');
+    const authForm = document.getElementById('authForm');
+
+    if (!authForm) return;
+
+    if (isRegister) {
+        currentMode = 'register';
+        authTitle.innerText = 'Đăng Ký Tài Khoản';
+        if (authSubtitle) authSubtitle.innerText = 'Đăng ký tài khoản mới để bắt đầu làm nhiệm vụ';
+        authBtn.innerText = 'Đăng Ký';
+        authForm.setAttribute('data-mode', 'register');
+        authToggleText.innerHTML = 'Đã có tài khoản? <span class="auth-switch-link" onclick="handleAuthToggle(false)">Đăng nhập</span>';
+    } else {
+        currentMode = 'login';
+        authTitle.innerText = '💎 Shop Duc Duy';
+        if (authSubtitle) authSubtitle.innerText = 'Đăng nhập để vào cửa hàng và làm nhiệm vụ';
+        authBtn.innerText = 'Đăng Nhập';
+        authForm.setAttribute('data-mode', 'login');
+        authToggleText.innerHTML = 'Chưa có tài khoản? <span class="auth-switch-link" onclick="handleAuthToggle(true)">Đăng ký ngay</span>';
+    }
+};
+
 function initAuthForms() {
     const authForm = document.getElementById('authForm');
-    const authBtn = document.getElementById('authBtn');
-    const toggleAuthLink = document.getElementById('toggleAuthLink');
-    const toggleAuthText = document.getElementById('toggleAuthText');
-    const authTitle = document.getElementById('authTitle');
-
-    let currentMode = 'login'; // login or register
-
-    toggleAuthLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (currentMode === 'login') {
-            currentMode = 'register';
-            authTitle.innerText = 'Đăng Ký Tài Khoản';
-            authBtn.innerText = 'Đăng Ký';
-            toggleAuthText.innerHTML = 'Đã có tài khoản? <a href="#" id="toggleAuthLink">Đăng nhập</a>';
-        } else {
-            currentMode = 'login';
-            authTitle.innerText = 'Đăng Nhập';
-            authBtn.innerText = 'Đăng Nhập';
-            toggleAuthText.innerHTML = 'Chưa có tài khoản? <a href="#" id="toggleAuthLink">Đăng ký ngay</a>';
-        }
-        // Re-bind to fresh toggle link element
-        initAuthForms();
-    });
+    if (!authForm) return;
 
     authForm.onsubmit = async (e) => {
         e.preventDefault();
@@ -399,12 +405,8 @@ function initAuthForms() {
             if (data.status === 'success') {
                 showToast(data.message, 'success');
                 if (currentMode === 'register') {
-                    // Switch to login
-                    currentMode = 'login';
-                    authTitle.innerText = 'Đăng Nhập';
-                    authBtn.innerText = 'Đăng Nhập';
-                    toggleAuthText.innerHTML = 'Chưa có tài khoản? <a href="#" id="toggleAuthLink">Đăng ký ngay</a>';
-                    initAuthForms();
+                    // Switch back to login
+                    window.handleAuthToggle(false);
                     document.getElementById('authPassword').value = '';
                 } else {
                     sessionToken = data.sessionToken;

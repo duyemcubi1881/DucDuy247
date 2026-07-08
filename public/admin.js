@@ -46,11 +46,13 @@ async function refreshAdminState() {
 }
 
 function showLoginOverlay() {
-    document.getElementById('adminLoginOverlay').style.display = 'flex';
+    document.getElementById('adminAuthWrapper').style.display = 'flex';
+    document.getElementById('adminAppContainer').style.display = 'none';
 }
 
 function hideLoginOverlay() {
-    document.getElementById('adminLoginOverlay').style.display = 'none';
+    document.getElementById('adminAuthWrapper').style.display = 'none';
+    document.getElementById('adminAppContainer').style.display = 'flex';
 }
 
 // Update Admin Control stats and lists
@@ -131,8 +133,8 @@ function initAdminForms() {
     const loginForm = document.getElementById('adminLoginForm');
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
-        const username = document.getElementById('adminUserField').value.trim();
-        const password = document.getElementById('adminPassField').value;
+        const username = document.getElementById('adminUsername').value.trim();
+        const password = document.getElementById('adminPassword').value;
 
         try {
             const res = await fetch('/api/admin/login', {
