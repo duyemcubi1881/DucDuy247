@@ -547,22 +547,19 @@ window.switchTab = function(tabId) {
 // --- POPUPS & MODALS ---
 function showKeyModal(packageName, key) {
     const modalHtml = `
-        <div class="modal-backdrop" id="keyModalBackdrop">
-            <div class="modal-card">
-                <div class="modal-header">
-                    <h3>🎉 Đổi Thưởng Thành Công!</h3>
+        <div class="modal-overlay show" id="keyModalBackdrop" style="z-index: 9999;">
+            <div class="modal-content" style="text-align: center;">
+                <div class="modal-icon">🎉</div>
+                <h3 class="modal-title">Đổi Thưởng Thành Công!</h3>
+                <p class="modal-desc" style="margin-bottom: 20px;">
+                    Bạn đã đổi thành công gói <strong>${packageName}</strong>. Hãy copy key bên dưới:
+                </p>
+                <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 18px; text-align: center; margin-bottom: 25px; position: relative;">
+                    <span style="font-family: monospace; font-size: 20px; font-weight: 800; color: #10b981; word-break: break-all;" id="modalKeyText">${key}</span>
                 </div>
-                <div class="modal-body">
-                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-                        Bạn đã đổi thành công gói <strong>${packageName}</strong>. Hãy copy key bên dưới:
-                    </p>
-                    <div style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 15px; text-align: center; margin-bottom: 20px; position: relative;">
-                        <span style="font-family: monospace; font-size: 18px; font-weight: 700; color: #10b981; word-break: break-all;" id="modalKeyText">${key}</span>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="copyModalKey('${key}')" style="margin-right: 10px;">📋 Copy Key</button>
-                    <button class="btn btn-secondary" onclick="closeKeyModal()">Đóng</button>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button onclick="copyModalKey('${key}')" style="padding: 12px 24px; font-size: 14px; font-weight: 700; background: var(--primary); color: #fff; border: none; border-radius: var(--border-radius-md); cursor: pointer; transition: var(--transition); box-shadow: 0 4px 10px var(--primary-glow); flex: 1;">📋 Copy Key</button>
+                    <button onclick="closeKeyModal()" style="padding: 12px 24px; font-size: 14px; font-weight: 700; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); cursor: pointer; transition: var(--transition); flex: 1;">Đóng</button>
                 </div>
             </div>
         </div>
