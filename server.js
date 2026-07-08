@@ -533,6 +533,10 @@ app.get('/api/claim-reward', async (req, res) => {
         }
 
         const elapsed = Date.now() - parseInt(dbUser.active_task_started_at, 10);
+        if (elapsed < 10 * 1000) {
+            return res.send("<h2>Lỗi: Thao tác quá nhanh! Bạn phải thực hiện vượt link tối thiểu 10 giây mới được nhận giải thưởng.</h2>");
+        }
+
         if (elapsed > 15 * 60 * 1000) {
             // Expired (>15 mins)
             await pool.query(
