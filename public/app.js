@@ -332,17 +332,12 @@ function renderShop(data) {
     const user = data.user;
     const stocks = data.stocks;
     
-    const boughtCounts = { '1h': 0, '2h': 0, '4h': 0 };
-    data.redeemHistory.forEach(h => {
-        if (h.itemName.includes('1 Giờ')) boughtCounts['1h']++;
-        if (h.itemName.includes('2 Giờ')) boughtCounts['2h']++;
-        if (h.itemName.includes('4 Giờ')) boughtCounts['4h']++;
-    });
+    const purchased = data.purchased || { '1h': 0, '2h': 0, '4h': 0 };
 
     const items = [
-        { type: '1h', label: 'Key Imgui Menu 1 Giờ', price: 100, stock: stocks['1h'], bought: boughtCounts['1h'] },
-        { type: '2h', label: 'Key Imgui Menu 2 Giờ', price: 150, stock: stocks['2h'], bought: boughtCounts['2h'] },
-        { type: '4h', label: 'Key Imgui Menu 4 Giờ', price: 200, stock: stocks['4h'], bought: boughtCounts['4h'] }
+        { type: '1h', label: 'Key Imgui Menu 1 Giờ', price: 100, stock: stocks['1h'], bought: purchased['1h'] },
+        { type: '2h', label: 'Key Imgui Menu 2 Giờ', price: 150, stock: stocks['2h'], bought: purchased['2h'] },
+        { type: '4h', label: 'Key Imgui Menu 4 Giờ', price: 200, stock: stocks['4h'], bought: purchased['4h'] }
     ];
 
     items.forEach(item => {
