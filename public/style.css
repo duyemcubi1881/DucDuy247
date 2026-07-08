@@ -1257,3 +1257,56 @@ tr:last-child td {
         gap: 20px;
     }
 }
+
+/* Action Buttons in Admin Tables */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    outline: none;
+    color: #ffffff;
+    box-shadow: var(--shadow-sm);
+}
+
+.action-btn.btn-coins {
+    background-color: #f59e0b; /* Yellow/Amber */
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);
+}
+
+.action-btn.btn-coins:hover {
+    background-color: #d97706;
+    transform: translateY(-1px);
+}
+
+.action-btn.btn-reset {
+    background-color: #3b82f6; /* Blue */
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+}
+
+.action-btn.btn-reset:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+}
+
+.action-btn.btn-delete {
+    background-color: #ef4444; /* Red */
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+}
+
+.action-btn.btn-delete:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.admin-controls-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}

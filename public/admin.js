@@ -331,7 +331,7 @@ async function clearAllKeys(keyType) {
 // Switch tabs and lists
 function switchTab(tabId) {
     // Navigation items
-    const navItems = document.querySelectorAll('.admin-sidebar .nav-item');
+    const navItems = document.querySelectorAll('.sidebar .nav-item');
     navItems.forEach(item => {
         if (item.getAttribute('data-tab') === tabId) {
             item.classList.add('active');
@@ -340,13 +340,13 @@ function switchTab(tabId) {
         }
     });
 
-    // Content cards
-    const cards = document.querySelectorAll('.admin-card');
-    cards.forEach(card => {
-        if (card.id === tabId) {
-            card.classList.add('active');
+    // Content panels
+    const panels = document.querySelectorAll('.tab-panel');
+    panels.forEach(panel => {
+        if (panel.id === tabId) {
+            panel.classList.add('active');
         } else {
-            card.classList.remove('active');
+            panel.classList.remove('active');
         }
     });
 }
