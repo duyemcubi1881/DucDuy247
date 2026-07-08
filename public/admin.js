@@ -39,12 +39,16 @@ async function refreshAdminState() {
             hideLoginOverlay();
             updateAdminDashboard(data);
         } else {
-            // Token expired or invalid
-            adminLogout();
+            showAdminToast(data.message || 'Phiên làm việc hết hạn!', 'error');
+            if (data.message && data.message.includes('database')) {
+                // Do not force logout to let developer inspect DB error message
+            } else {
+                adminLogout();
+            }
         }
     } catch (err) {
         console.error(err);
-        showAdminToast('Lỗi kết nối đến máy chủ admin!', 'error');
+        showAdminToast(`Lỗi kết nối máy chủ admin: ${err.message}`, 'error');
     }
 }
 

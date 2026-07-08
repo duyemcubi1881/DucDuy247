@@ -52,12 +52,16 @@ async function refreshState() {
             showDashboardView();
             updateUI(data);
         } else {
-            // Token expired or invalid
-            logout();
+            showToast(data.message || 'Phiên làm việc hết hạn!', 'error');
+            if (data.message && data.message.includes('database')) {
+                // Do not force logout to let developer inspect DB error message
+            } else {
+                logout();
+            }
         }
     } catch (err) {
         console.error("Lỗi khi tải dữ liệu từ máy chủ:", err);
-        showToast("Lỗi kết nối đến máy chủ!", "error");
+        showToast(`Lỗi kết nối đến máy chủ: ${err.message}`, "error");
     }
 }
 
