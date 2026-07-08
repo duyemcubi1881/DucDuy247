@@ -48,7 +48,10 @@ if (connectionString) {
 // Database pool connection
 const pool = new Pool({
     connectionString: connectionString,
-    ssl: connectionString ? { rejectUnauthorized: false } : false
+    ssl: connectionString ? { rejectUnauthorized: false } : false,
+    max: 30, // Tăng giới hạn số kết nối song song trong pool lên 30 để phục vụ nhiều người dùng
+    idleTimeoutMillis: 30000, // Đóng các kết nối nhàn rỗi sau 30 giây để giải phóng tài nguyên
+    connectionTimeoutMillis: 5000 // Tự động ngắt kết nối nếu quá 5 giây không phản hồi (tránh treo request)
 });
 
 pool.on('error', (err) => {
