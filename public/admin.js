@@ -71,11 +71,20 @@ function updateAdminDashboard(data) {
     const stats = data.stats;
 
     // Update statistics cards
-    document.getElementById('statTotalUsers').innerText = stats.totalUsers;
-    document.getElementById('statTotalCoins').innerText = stats.totalCoins;
-    document.getElementById('stat1hStock').innerText = stats.stock1h;
-    document.getElementById('stat2hStock').innerText = stats.stock2h;
-    document.getElementById('stat4hStock').innerText = stats.stock4h;
+    const totalUsersEl = document.getElementById('statTotalUsers');
+    if (totalUsersEl) totalUsersEl.innerText = stats.totalUsers;
+
+    const totalCoinsEl = document.getElementById('statTotalCoins');
+    if (totalCoinsEl) totalCoinsEl.innerText = stats.totalCoins;
+
+    const stock1hEl = document.getElementById('statKeys1h');
+    if (stock1hEl) stock1hEl.innerText = stats.stock1h;
+
+    const stock2hEl = document.getElementById('statKeys2h');
+    if (stock2hEl) stock2hEl.innerText = stats.stock2h;
+
+    const stock4hEl = document.getElementById('statKeys4h');
+    if (stock4hEl) stock4hEl.innerText = stats.stock4h;
 
     // Render users list table
     renderUsersTable(data.users);
@@ -86,6 +95,7 @@ function updateAdminDashboard(data) {
 
 function renderUsersTable(users) {
     const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     if (users.length === 0) {
@@ -119,6 +129,7 @@ function renderUsersTable(users) {
 
 function renderKeysTable(keysList) {
     const tbody = document.getElementById('keysTableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     if (keysList.length === 0) {
