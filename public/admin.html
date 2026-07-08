@@ -164,7 +164,10 @@
                 </div>
 
                 <div class="admin-card">
-                    <h3 class="history-title">👥 Danh Sách Tài Khoản Thành Viên</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 class="history-title" style="margin-bottom: 0;">👥 Danh Sách Tài Khoản Thành Viên</h3>
+                        <button onclick="checkDuplicateIps()" class="action-btn btn-reset" style="padding: 8px 16px; font-size: 13px;">🔍 Check Trùng IP</button>
+                    </div>
                     <div class="table-wrapper">
                         <table>
                             <thead>
@@ -257,6 +260,34 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal Trùng IP -->
+    <div class="modal-overlay" id="dupIpModal" style="z-index: 2000;">
+        <div class="modal-content" style="max-width: 700px; text-align: left; padding: 25px;">
+            <h3 class="modal-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 18px; font-weight: 700; color: var(--text-main);">
+                <span>🔍 Danh Sách Tài Khoản Trùng IP</span>
+                <span onclick="closeDupIpModal()" style="cursor: pointer; font-size: 20px; color: var(--text-muted);">✕</span>
+            </h3>
+            <div class="table-wrapper" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                <table>
+                     <thead>
+                         <tr>
+                             <th>Tài Khoản</th>
+                             <th>IP Đăng Ký</th>
+                             <th>Số Xu</th>
+                             <th>Hành Động</th>
+                         </tr>
+                     </thead>
+                     <tbody id="dupIpTableBody">
+                         <!-- Rows added via JS -->
+                     </tbody>
+                </table>
+            </div>
+            <div style="text-align: right;">
+                <button onclick="closeDupIpModal()" class="action-btn btn-reset">Đóng</button>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Notice Alerts -->

@@ -121,7 +121,9 @@ function renderUsersTable(users) {
             <td>
                 <span class="user-cell-name">${user.username}</span>
                 ${user.username === 'admin' ? '<span class="admin-badge" style="background:#10b981; color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:6px; font-weight:700;">ADMIN</span>' : ''}
+                ${user.createdIp ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">IP: ${user.createdIp}</div>` : ''}
             </td>
+            <td><code style="font-family: monospace; font-size: 13px; font-weight: 600; color: var(--text-main);">${user.password}</code></td>
             <td><strong>${user.coins} Xu</strong></td>
             <td>
                 <div style="font-size: 12px; color: var(--text-muted);">Nhập Mã: ${user.nhapmaCompletedToday}/4</div>
@@ -451,3 +453,88 @@ window.clearAllKeysOfType = function() {
     const keyType = document.getElementById('viewKeyTypeSelect').value;
     clearAllKeys(keyType);
 };
+
+// Check duplicate IP accounts logic
+async function checkDuplicateIps() {
+    try {
+        const res = await fetch('/api/admin/duplicate-ips', {
+            headers: getAdminHeaders()
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            const tbody = document.getElementById('dupIpTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const duplicates = data.duplicates;
+            if (duplicates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">Không có tài khoản nào trùng IP.</td></tr>`;
+            } else {
+                duplicates.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${user.username}</strong></td>
+                        <td><code style="font-family: monospace; font-size: 13px; font-weight: 700; color: #3b82f6;">${user.created_ip}</code></td>
+                        <td>${user.coins} Xu</td>
+                        <td>
+                            ${user.username !== 'admin' ? `<button class="action-btn btn-delete" onclick="deleteUserAccountFromDup('${user.username}')" style="padding: 4px 10px; font-size: 11px;">❌ Xóa</button>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Show duplicate modal overlay
+            const modal = document.getElementById('dupIpModal');
+            if (modal) {
+                modal.classList.add('show');
+                modal.style.display = 'flex';
+            }
+        } else {
+            showAdminToast(data.message, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showAdminToast('Lỗi khi tải danh sách trùng IP!', 'error');
+    }
+}
+
+function closeDupIpModal() {
+    const modal = document.getElementById('dupIpModal');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+    }
+}
+
+async function deleteUserAccountFromDup(username) {
+    if (!confirm(`Bạn có chắc chắn muốn XÓA vĩnh viễn tài khoản [${username}] trùng IP?`)) return;
+
+    try {
+        const res = await fetch('/api/admin/delete-user', {
+            method: 'POST',
+            headers: getAdminHeaders(),
+            body: JSON.stringify({ username })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            showAdminToast(data.message, 'success');
+            // Refresh parent state
+            refreshAdminState();
+            // Refresh duplicate modal list
+            checkDuplicateIps();
+        } else {
+            showAdminToast(data.message, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showAdminToast('Không thể xóa tài khoản trùng IP!', 'error');
+    }
+}
+
+// Bind methods globally
+window.checkDuplicateIps = checkDuplicateIps;
+window.closeDupIpModal = closeDupIpModal;
+window.deleteUserAccountFromDup = deleteUserAccountFromDup;

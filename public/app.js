@@ -208,7 +208,7 @@ function renderTasks(user) {
     if (redirectBtn && user.activeTask) {
         redirectBtn.onclick = () => {
             showToast("Đang đưa bạn đến liên kết vượt...", "success");
-            window.location.href = `/api/claim-reward?reward_token=${user.activeTask.token}&user=${encodeURIComponent(user.username)}`;
+            window.location.href = user.activeTask.shortlinkUrl;
         };
     }
 }
