@@ -11,7 +11,11 @@ const PORT = process.env.PORT || 3000;
 
 // Configuration limits and tokens
 const FUNLINK_TOKEN = '65d4f6c0bb16481fbe5f6b69f9922bcb';
+const FUNLINK_API_URL = 'https://private.funlink.io/api/cong-khai/tao-lien-ket';
+
 const NHAPMA_TOKEN = '00481ff4-378e-4ef7-a996-209e35386123';
+const NHAPMA_API_URL = 'https://service.nhapma.com/api';
+
 const LIMIT_FUNLINK = 2;
 const LIMIT_NHAPMA = 4;
 
@@ -30,14 +34,29 @@ const adminSessions = {}; // token -> isAdmin
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+let connectionString = process.env.DATABASE_URL;
+if (connectionString) {
+    try {
+        const parsedUrl = new URL(connectionString);
+        parsedUrl.searchParams.delete('channel_binding');
+        connectionString = parsedUrl.toString();
+    } catch (e) {
+        console.warn("Lỗi phân tích DATABASE_URL:", e);
+    }
+}
+
 // Database pool connection
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+    connectionString: connectionString,
+    ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
 // Initialize database schema
 async function initDb() {
+    if (!process.env.DATABASE_URL) {
+        console.error("CẢNH BÁO: Biến môi trường DATABASE_URL chưa được cấu hình!");
+        return;
+    }
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
@@ -140,22 +159,46 @@ function makeHttpRequest(url) {
 
 // --- 0. TEST IP ENDPOINT (FOR ADMIN TO WHITELIST ON FUNLINK) ---
 app.get('/api/test-ip', async (req, res) => {
+    let ipv4 = 'Không thể lấy (hoặc không hỗ trợ)';
+    let ipv6 = 'Không thể lấy (hoặc không hỗ trợ)';
+    
     try {
-        const data = await makeHttpRequest('https://api.ipify.org?format=json');
-        const parsed = JSON.parse(data);
-        res.send(`
-            <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #0f172a; color: #fff; min-height: 100vh;">
-                <h1 style="color: #38bdf8;">Render Outbound Server IP</h1>
-                <p style="font-size: 18px; color: #94a3b8;">Copy địa chỉ IP bên dưới gửi cho Admin Funlink để Whitelist:</p>
-                <div style="background: #1e293b; padding: 20px; font-size: 32px; font-family: monospace; border-radius: 10px; display: inline-block; border: 1px solid #334155; color: #10b981; font-weight: bold; margin: 20px 0;">
-                    ${parsed.ip}
-                </div>
-                <p style="color: #64748b;">(Tên miền của bạn: ${req.headers.host})</p>
-            </div>
-        `);
-    } catch (err) {
-        res.status(500).send("Không thể lấy IP máy chủ: " + err.message);
+        const v4Data = await makeHttpRequest('https://api.ipify.org?format=json');
+        ipv4 = JSON.parse(v4Data).ip;
+    } catch (e) {
+        console.warn("Lỗi lấy IPv4:", e.message);
     }
+    
+    try {
+        const v6Data = await makeHttpRequest('https://api6.ipify.org?format=json');
+        ipv6 = JSON.parse(v6Data).ip;
+    } catch (e) {
+        console.warn("Lỗi lấy IPv6:", e.message);
+    }
+
+    res.send(`
+        <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #0f172a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <h1 style="color: #38bdf8; font-size: 32px; margin-bottom: 10px;">Render Outbound Server IP</h1>
+            <p style="font-size: 18px; color: #94a3b8; max-width: 600px; margin-bottom: 30px;">Copy cả 2 địa chỉ IP bên dưới gửi cho Admin Funlink để Whitelist:</p>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-bottom: 30px;">
+                <div style="background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; width: 300px;">
+                    <h3 style="color: #3b82f6; margin-top: 0;">IPv4 Address</h3>
+                    <div style="font-size: 20px; font-family: monospace; color: #10b981; font-weight: bold; margin: 15px 0; word-break: break-all;">
+                        ${ipv4}
+                    </div>
+                </div>
+                <div style="background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; width: 300px;">
+                    <h3 style="color: #a855f7; margin-top: 0;">IPv6 Address</h3>
+                    <div style="font-size: 20px; font-family: monospace; color: #10b981; font-weight: bold; margin: 15px 0; word-break: break-all;">
+                        ${ipv6}
+                    </div>
+                </div>
+            </div>
+            
+            <p style="color: #64748b;">(Tên miền của bạn: ${req.headers.host})</p>
+        </div>
+    `);
 });
 
 // --- 1. AUTH MIDDLEWARE ---
@@ -179,6 +222,9 @@ function getSessionAdmin(req) {
 
 // --- 2. GET CURRENT USER STATE ---
 app.get('/api/state', async (req, res) => {
+    if (!process.env.DATABASE_URL) {
+        return res.status(500).json({ status: "error", message: "Database chưa được cấu hình! Vui lòng thiết lập biến DATABASE_URL trên Render." });
+    }
     const username = getSessionUser(req);
     if (!username) {
         return res.status(401).json({ status: "error", message: "Chưa đăng nhập!" });
@@ -250,6 +296,9 @@ app.get('/api/state', async (req, res) => {
 
 // --- 3. LOGIN & REGISTER ---
 app.post('/api/auth', async (req, res) => {
+    if (!process.env.DATABASE_URL) {
+        return res.json({ status: "error", message: "Database chưa được cấu hình! Vui lòng thiết lập biến DATABASE_URL trên Render." });
+    }
     const { username, password, mode } = req.body;
     if (!username || !password) {
         return res.json({ status: "error", message: "Vui lòng nhập tài khoản và mật khẩu!" });
@@ -568,6 +617,9 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 app.get('/api/admin/state', async (req, res) => {
+    if (!process.env.DATABASE_URL) {
+        return res.status(500).json({ status: "error", message: "Database chưa được cấu hình! Vui lòng thiết lập biến DATABASE_URL trên Render." });
+    }
     if (!getSessionAdmin(req)) {
         return res.status(403).json({ status: "error", message: "Từ chối truy cập!" });
     }
