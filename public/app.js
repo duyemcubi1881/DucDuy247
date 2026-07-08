@@ -366,8 +366,8 @@ function renderShop(data) {
             </div>
             <div class="shop-body" style="padding: 24px; text-align: center;">
                 <h3 class="shop-title" style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">${item.label}</h3>
-                <div class="shop-price" style="font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 15px;">
-                    ${item.price} <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">Xu</span>
+                <div class="shop-price" style="font-size: 24px; font-weight: 800; color: #f59e0b; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    ${item.price} <img src="coin_icon.png" alt="Xu" style="width: 22px; height: 22px; object-fit: contain;">
                 </div>
                 
                 <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
