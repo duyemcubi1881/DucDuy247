@@ -77,7 +77,9 @@ async function initDb() {
                 active_task_token VARCHAR(100),
                 active_task_provider VARCHAR(50),
                 active_task_started_at BIGINT,
-                is_admin INT DEFAULT 0
+                active_task_url TEXT,
+                is_admin INT DEFAULT 0,
+                created_ip VARCHAR(100)
             );
         `);
 
@@ -122,6 +124,8 @@ async function initDb() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_provider VARCHAR(50);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_started_at BIGINT;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INT DEFAULT 0;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS created_ip VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_url TEXT;
         `);
 
         // Check if default admin account exists
@@ -302,7 +306,7 @@ app.get('/api/state', async (req, res) => {
                 isAdmin: parseInt(user.is_admin, 10) === 1,
                 activeTask: user.active_task_token ? {
                     provider: user.active_task_provider,
-                    token: user.active_task_token,
+                    shortlinkUrl: user.active_task_url || '',
                     startedAt: parseInt(user.active_task_started_at, 10)
                 } : null
             },
@@ -316,6 +320,21 @@ app.get('/api/state', async (req, res) => {
         res.status(500).json({ status: "error", message: `Lỗi kết nối database: ${err.message}` });
     }
 });
+
+const getClientIp = (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.socket.remoteAddress;
+};
+
+const isPrivateIp = (ip) => {
+    if (!ip) return true;
+    if (ip === '::1' || ip === '127.0.0.1') return true;
+    if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.16.')) return true;
+    return false;
+};
 
 // --- 3. LOGIN & REGISTER ---
 app.post('/api/auth', async (req, res) => {
@@ -334,11 +353,36 @@ app.post('/api/auth', async (req, res) => {
                 return res.json({ status: "error", message: "Tên đăng nhập đã tồn tại!" });
             }
 
+            const clientIp = getClientIp(req);
+
+            // 1. Chống Fake IP (VPN/Proxy/Hosting) qua API ip-api.com
+            if (!isPrivateIp(clientIp)) {
+                try {
+                    const vpnCheck = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,proxy,hosting`);
+                    const vpnData = await vpnCheck.json();
+                    if (vpnData.status === 'success') {
+                        if (vpnData.proxy === true || vpnData.hosting === true) {
+                            return res.json({ status: "error", message: "Phát hiện kết nối VPN/Proxy! Vui lòng tắt VPN để đăng ký tài khoản." });
+                        }
+                    }
+                } catch (vpnErr) {
+                    console.warn("Lỗi kiểm tra VPN từ ip-api:", vpnErr.message);
+                }
+            }
+
+            // 2. Mỗi IP chỉ được tạo 1 tài khoản duy nhất (loại trừ IP cục bộ localhost để dev test)
+            if (clientIp && !isPrivateIp(clientIp)) {
+                const ipCheckRes = await pool.query("SELECT id FROM users WHERE created_ip = $1", [clientIp]);
+                if (ipCheckRes.rowCount > 0) {
+                    return res.json({ status: "error", message: "Mỗi địa chỉ IP chỉ được đăng ký tối đa 1 tài khoản!" });
+                }
+            }
+
             const isAdmin = (username.toLowerCase() === 'admin') ? 1 : 0;
             const today = getLocalDateString();
             await pool.query(
-                "INSERT INTO users (username, password, coins, is_admin, last_task_reset_date) VALUES ($1, $2, 0, $3, $4)",
-                [username, password, isAdmin, today]
+                "INSERT INTO users (username, password, coins, is_admin, last_task_reset_date, created_ip) VALUES ($1, $2, 0, $3, $4, $5)",
+                [username, password, isAdmin, today, clientIp]
             );
             res.json({ status: "success", message: "Đăng ký tài khoản thành công!" });
         } else {
@@ -439,8 +483,8 @@ app.post('/api/start-task', async (req, res) => {
         // Save active task in database
         const now = Date.now();
         await pool.query(
-            "UPDATE users SET active_task_token = $1, active_task_provider = $2, active_task_started_at = $3 WHERE id = $4",
-            [taskToken, provider, now, user.id]
+            "UPDATE users SET active_task_token = $1, active_task_provider = $2, active_task_started_at = $3, active_task_url = $4 WHERE id = $5",
+            [taskToken, provider, now, shortlinkUrl, user.id]
         );
 
         res.json({
@@ -463,7 +507,7 @@ app.post('/api/cancel-task', async (req, res) => {
 
     try {
         await pool.query(
-            "UPDATE users SET active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL WHERE username = $1",
+            "UPDATE users SET active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL, active_task_url = NULL WHERE username = $1",
             [username]
         );
         res.json({ status: "success", message: "Đã hủy nhiệm vụ hiện tại." });
@@ -492,7 +536,7 @@ app.get('/api/claim-reward', async (req, res) => {
         if (elapsed > 15 * 60 * 1000) {
             // Expired (>15 mins)
             await pool.query(
-                "UPDATE users SET active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL WHERE id = $1",
+                "UPDATE users SET active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL, active_task_url = NULL WHERE id = $1",
                 [dbUser.id]
             );
             return res.send("<h2>Lỗi: Thời gian làm nhiệm vụ đã vượt quá 15 phút và bị hủy!</h2>");
@@ -506,7 +550,7 @@ app.get('/api/claim-reward', async (req, res) => {
             earned = (completed === 1) ? 200 : 100;
 
             await pool.query(
-                "UPDATE users SET coins = coins + $1, funlink_completed_today = $2, active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL WHERE id = $3",
+                "UPDATE users SET coins = coins + $1, funlink_completed_today = $2, active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL, active_task_url = NULL WHERE id = $3",
                 [earned, completed, dbUser.id]
             );
         } else {
@@ -514,7 +558,7 @@ app.get('/api/claim-reward', async (req, res) => {
             earned = 100;
 
             await pool.query(
-                "UPDATE users SET coins = coins + $1, nhapma_completed_today = $2, active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL WHERE id = $3",
+                "UPDATE users SET coins = coins + $1, nhapma_completed_today = $2, active_task_token = NULL, active_task_provider = NULL, active_task_started_at = NULL, active_task_url = NULL WHERE id = $3",
                 [earned, completed, dbUser.id]
             );
         }
@@ -657,14 +701,15 @@ app.get('/api/admin/state', async (req, res) => {
             stocks[type] = parseInt(countRes.rows[0].count, 10);
         }
 
-        const usersRes = await pool.query("SELECT username, password, coins, funlink_completed_today, nhapma_completed_today, last_task_reset_date FROM users ORDER BY id ASC");
+        const usersRes = await pool.query("SELECT username, password, coins, funlink_completed_today, nhapma_completed_today, last_task_reset_date, created_ip FROM users ORDER BY id ASC");
         const users = usersRes.rows.map(row => ({
             username: row.username,
             password: row.password,
             coins: parseInt(row.coins, 10),
             funlinkCompletedToday: parseInt(row.funlink_completed_today, 10),
             nhapmaCompletedToday: parseInt(row.nhapma_completed_today, 10),
-            lastTaskResetDate: row.last_task_reset_date
+            lastTaskResetDate: row.last_task_reset_date,
+            createdIp: row.created_ip || ''
         }));
 
         const keyType = req.query.key_type || '4h';
@@ -686,6 +731,25 @@ app.get('/api/admin/state', async (req, res) => {
             users,
             keysList
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ status: "error", message: `Lỗi kết nối database: ${err.message}` });
+    }
+});
+
+app.get('/api/admin/duplicate-ips', async (req, res) => {
+    if (!getSessionAdmin(req)) return res.status(403).json({ status: "error", message: "Từ chối truy cập!" });
+
+    try {
+        const dupRes = await pool.query(`
+            SELECT username, created_ip, coins, funlink_completed_today, nhapma_completed_today 
+            FROM users 
+            WHERE created_ip IS NOT NULL AND created_ip != '' AND created_ip IN (
+                SELECT created_ip FROM users GROUP BY created_ip HAVING COUNT(*) > 1
+            )
+            ORDER BY created_ip ASC, username ASC
+        `);
+        res.json({ status: "success", duplicates: dupRes.rows });
     } catch (err) {
         console.error(err);
         res.status(500).json({ status: "error", message: `Lỗi kết nối database: ${err.message}` });
