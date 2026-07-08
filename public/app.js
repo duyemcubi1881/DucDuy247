@@ -117,21 +117,27 @@ function renderTasks(user) {
     const tasks = [
         {
             provider: 'Funlink',
-            title: 'Nhiệm Vụ 1: Rút Gọn Funlink',
-            subtitle: 'Vượt link của nhà tài trợ Funlink để nhận xu thưởng.',
+            title: 'Nhiệm Vụ Funlink',
+            desc: 'Vượt link qua nền tảng Funlink. Lượt 1 nhận 200 Xu, lượt 2 nhận 100 Xu.',
             completed: user.funlinkCompletedToday,
             limit: 2,
-            rewardText: 'Lượt 1: +200 xu, Lượt 2: +100 xu',
-            icon: '🔗'
+            rewardText: `+${user.funlinkCompletedToday === 0 ? 200 : 100} Xu`,
+            icon: '🔗',
+            bannerClass: 'task-banner-placeholder',
+            badgeText: 'GIỚI HẠN 2 LƯỢT',
+            typeColor: '#2563eb'
         },
         {
             provider: 'Nhập mã',
-            title: 'Nhiệm Vụ 2: Rút Gọn Nhập Mã',
-            subtitle: 'Vượt link của nhà tài trợ Nhapma.com để nhận xu thưởng.',
+            title: 'Nhiệm Vụ Nhập Mã',
+            desc: 'Vượt link qua dịch vụ Nhập mã. Tối đa 4 lượt một ngày, mỗi lượt nhận 100 Xu.',
             completed: user.nhapmaCompletedToday,
             limit: 4,
-            rewardText: '+100 xu / lượt vượt thành công',
-            icon: '🔑'
+            rewardText: '+100 Xu',
+            icon: '🔑',
+            bannerClass: 'task-banner-placeholder task-banner-nhapma',
+            badgeText: 'GIỚI HẠN 4 LƯỢT',
+            typeColor: '#10b981'
         }
     ];
 
@@ -141,35 +147,52 @@ function renderTasks(user) {
         
         let actionHtml = '';
         if (isCompleted) {
-            actionHtml = `<span class="task-badge danger" style="padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">🚫 Hết lượt hôm nay</span>`;
+            actionHtml = `<button class="btn-task" disabled style="background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-muted); cursor: not-allowed; box-shadow: none;">🚫 Hết lượt hôm nay</button>`;
         } else if (activeTask && activeTask.provider === task.provider) {
             actionHtml = `
                 <div style="display: flex; gap: 10px; width: 100%;">
-                    <button class="btn btn-secondary" onclick="cancelActiveTask()" style="padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; border-radius: var(--border-radius-md); cursor: pointer; flex: 1;">Hủy</button>
-                    <button class="btn btn-primary" id="btnActiveRedirect" style="padding: 10px; background: #10b981; border: none; color: #fff; font-weight: 700; border-radius: var(--border-radius-md); cursor: pointer; flex: 2;">🚀 Bắt Đầu Vượt Link</button>
+                    <button class="btn-task" onclick="cancelActiveTask()" style="flex: 1; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none;">Hủy</button>
+                    <button class="btn-task" id="btnActiveRedirect" style="flex: 2; background: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); border: none;">🚀 Bắt Đầu Vượt</button>
                 </div>
             `;
         } else if (activeTask) {
-            actionHtml = `<span class="task-badge warning" style="padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 12px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);">⏳ Đang làm nhiệm vụ khác</span>`;
+            actionHtml = `<button class="btn-task" disabled style="background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-muted); cursor: not-allowed; box-shadow: none;">⏳ Đang làm nhiệm vụ khác</button>`;
         } else {
             actionHtml = isCreatingLink 
-                ? `<button class="btn btn-primary btn-loading" disabled style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700;">Đang tạo link...</button>`
-                : `<button class="btn btn-primary" onclick="startNewTask('${task.provider}')" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; background: var(--primary); color: #fff; border: none; cursor: pointer;">Nhận Nhiệm Vụ</button>`;
+                ? `<button class="btn-task" disabled style="opacity: 0.7; cursor: wait;">Đang tạo link...</button>`
+                : `<button class="btn-task" onclick="startNewTask('${task.provider}')" style="${task.provider === 'Nhập mã' ? 'background-color: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);' : ''}">${task.icon} Nhận Nhiệm Vụ ${task.provider}</button>`;
         }
 
         const card = document.createElement('div');
         card.className = 'task-card';
         card.innerHTML = `
-            <div class="task-header" style="display: flex; align-items: center;">
-                <span class="task-icon" style="font-size: 32px; background: rgba(59, 130, 246, 0.05); padding: 10px; border-radius: var(--border-radius-md);">${task.icon}</span>
-                <span class="task-badge info" style="margin-left: auto; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 50px; background: rgba(59, 130, 246, 0.1); color: var(--primary);">${task.completed}/${task.limit} Lượt</span>
+            <div class="${task.bannerClass}" style="height: 140px; position: relative; display: flex; align-items: center; justify-content: center; color: white; font-size: 36px;">
+                ${task.icon}
+                <span class="task-badge">${task.badgeText}</span>
             </div>
-            <div class="task-body" style="margin-top: 15px;">
-                <h3 class="task-title" style="font-size: 18px; font-weight: 700; color: var(--text-main);">${task.title}</h3>
-                <p class="task-subtitle" style="font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">${task.subtitle}</p>
-                <div class="task-reward-info" style="margin-top: 12px; font-size: 12px; font-weight: 600; color: #10b981;">🎁 Phần thưởng: ${task.rewardText}</div>
-            </div>
-            <div class="task-action-container" style="margin-top: 20px;">
+            <div class="task-body">
+                <h3 class="task-title">${task.title}</h3>
+                <p class="task-desc">${task.desc}</p>
+                
+                <div class="task-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Loại link</div>
+                        <div class="stat-value" style="color: ${task.typeColor};">${task.provider}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Bản thân</div>
+                        <div class="stat-value">${task.completed}/${task.limit}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Hôm nay</div>
+                        <div class="stat-value" style="color: #10b981;">${task.limit} Lượt</div>
+                    </div>
+                </div>
+                
+                <div class="reward-bar">
+                    Thưởng tiếp theo: <span class="reward-bar-coins">${task.rewardText}</span>
+                </div>
+                
                 ${actionHtml}
             </div>
         `;
