@@ -51,6 +51,10 @@ const pool = new Pool({
     ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
+pool.on('error', (err) => {
+    console.error('Lỗi Pool Database ngoài ý muốn:', err.message);
+});
+
 // Initialize database schema
 async function initDb() {
     if (!process.env.DATABASE_URL) {
@@ -301,7 +305,7 @@ app.get('/api/state', async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ status: "error", message: "Lỗi hệ thống!" });
+        res.status(500).json({ status: "error", message: `Lỗi kết nối database: ${err.message}` });
     }
 });
 
@@ -358,7 +362,7 @@ app.post('/api/auth', async (req, res) => {
         }
     } catch (err) {
         console.error(err);
-        res.json({ status: "error", message: "Lỗi xử lý cơ sở dữ liệu!" });
+        res.json({ status: "error", message: `Lỗi kết nối database: ${err.message}` });
     }
 });
 
@@ -676,7 +680,7 @@ app.get('/api/admin/state', async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ status: "error", message: "Lỗi hệ thống!" });
+        res.status(500).json({ status: "error", message: `Lỗi kết nối database: ${err.message}` });
     }
 });
 
