@@ -326,6 +326,18 @@ async function purchaseKey(keyType, price, label) {
     }
 }
 
+function getDurationText(keyType) {
+    const matchH = keyType.match(/^(\d+)h$/i);
+    if (matchH) {
+        return `${matchH[1]} tiếng dùng`;
+    }
+    const matchD = keyType.match(/^(\d+)d$/i);
+    if (matchD) {
+        return `${matchD[1]} ngày dùng`;
+    }
+    return 'Gói VIP';
+}
+
 function renderShop(data) {
     const shopContainer = document.getElementById('shopContainer');
     if (!shopContainer) return;
@@ -369,8 +381,10 @@ function renderShop(data) {
             </div>
             <div class="shop-body" style="padding: 24px; text-align: center;">
                 <h3 class="shop-title" style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">${item.name}</h3>
-                <div class="shop-price" style="font-size: 24px; font-weight: 800; color: #f59e0b; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    ${item.price} <img src="coin_icon.png" class="coin-icon-img" alt="Xu" style="width: 22px; height: 22px; object-fit: contain;">
+                <div class="shop-price" style="font-size: 20px; font-weight: 800; color: #f59e0b; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    ${item.price} <img src="coin_icon.png" class="coin-icon-img" alt="Xu" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle;">
+                    <span style="color: var(--border-color); font-size: 16px; font-weight: 600; margin-left: 6px; margin-right: 6px;">|</span>
+                    <span style="font-size: 16px; font-weight: 700; color: var(--text-muted);">${getDurationText(item.key_type)}</span>
                 </div>
                 
                 <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
