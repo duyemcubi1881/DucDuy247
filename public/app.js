@@ -384,7 +384,7 @@ function renderShop(data) {
                 <div class="shop-price" style="font-size: 20px; font-weight: 800; color: #f59e0b; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     ${item.price} <img src="coin_icon.png" class="coin-icon-img" alt="Xu" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle;">
                     <span style="color: var(--border-color); font-size: 16px; font-weight: 600; margin-left: 6px; margin-right: 6px;">|</span>
-                    <span style="font-size: 16px; font-weight: 700; color: var(--text-muted);">${getDurationText(item.key_type)}</span>
+                    <span style="font-size: 16px; font-weight: 700; color: var(--text-muted);">${item.duration_text || 'Gói VIP'}</span>
                 </div>
                 
                 <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--text-muted);">

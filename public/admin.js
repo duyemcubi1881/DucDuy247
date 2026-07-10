@@ -645,7 +645,7 @@ function renderAdminProducts(products) {
             <div style="flex: 1; text-align: left;">
                 <div style="font-weight: 700; color: var(--text-main); font-size: 14px;">${p.name}</div>
                 <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 3px;">
-                    Mã: <code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px;">${p.key_type}</code> | Giá: <span style="color: #f59e0b; font-weight: 700;">${p.price} xu</span>
+                    Mã: <code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px;">${p.key_type}</code> | Giá: <span style="color: #f59e0b; font-weight: 700;">${p.price} xu</span> | Hạn: <span style="color: var(--text-main); font-weight: 700;">${p.duration_text || 'Gói VIP'}</span>
                 </div>
                 ${p.download_url ? `<div style="font-size: 11px; color: #10b981; font-weight: 600; margin-top: 3px;">📥 Có link tải: <a href="${p.download_url}" target="_blank" style="color:#2563eb; text-decoration:underline;">Tải thử</a></div>` : ''}
             </div>
@@ -669,6 +669,7 @@ async function saveProduct() {
     const price = parseInt(document.getElementById('prodPrice').value, 10);
     const imageUrl = document.getElementById('prodImage').value.trim();
     const downloadUrl = document.getElementById('prodDownload').value.trim();
+    const durationText = document.getElementById('prodDurationText').value.trim();
     const description = document.getElementById('prodDesc').value.trim();
 
     if (!name || !keyType || isNaN(price)) {
@@ -683,7 +684,8 @@ async function saveProduct() {
             description,
             price,
             imageUrl: imageUrl || 'menu_banner.png',
-            downloadUrl
+            downloadUrl,
+            durationText: durationText || 'Gói VIP'
         };
         if (id) payload.id = parseInt(id, 10);
 
@@ -718,6 +720,7 @@ function editProduct(id) {
     document.getElementById('prodPrice').value = p.price;
     document.getElementById('prodImage').value = p.image_url === 'menu_banner.png' ? '' : p.image_url;
     document.getElementById('prodDownload').value = p.download_url || '';
+    document.getElementById('prodDurationText').value = p.duration_text || '';
     document.getElementById('prodDesc').value = p.description || '';
 
     document.getElementById('productFormTitle').textContent = '🛍️ Sửa Sản Phẩm';
@@ -732,6 +735,7 @@ function cancelProductEdit() {
     document.getElementById('prodPrice').value = '';
     document.getElementById('prodImage').value = '';
     document.getElementById('prodDownload').value = '';
+    document.getElementById('prodDurationText').value = '';
     document.getElementById('prodDesc').value = '';
 
     document.getElementById('productFormTitle').textContent = '🛍️ Thêm Sản Phẩm Mới';
