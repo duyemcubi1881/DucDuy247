@@ -615,6 +615,9 @@ function renderAdminProducts(products) {
     if (!container) return;
     container.innerHTML = '';
 
+    // Cache products globally to avoid complex quote/newline issues in onclick inline attributes
+    window.adminProducts = products;
+
     if (products.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 40px; color: var(--text-muted); font-weight: 700;">
@@ -647,8 +650,8 @@ function renderAdminProducts(products) {
                 ${p.download_url ? `<div style="font-size: 11px; color: #10b981; font-weight: 600; margin-top: 3px;">📥 Có link tải: <a href="${p.download_url}" target="_blank" style="color:#2563eb; text-decoration:underline;">Tải thử</a></div>` : ''}
             </div>
             <div style="display: flex; gap: 6px;">
-                <button class="action-btn btn-view" onclick="editProduct(${p.id}, '${p.key_type}', '${escapeHtml(p.name)}', '${escapeHtml(p.description || '')}', ${p.price}, '${escapeHtml(p.image_url || '')}', '${escapeHtml(p.download_url || '')}')" style="padding: 6px 12px; font-size: 12px;">Sửa</button>
-                <button class="action-btn btn-delete" onclick="deleteProduct(${p.id}, '${p.key_type}')" style="padding: 6px 12px; font-size: 12px;">Xóa</button>
+                <button class="action-btn btn-reset" onclick="editProduct(${p.id})" style="padding: 6px 12px; font-size: 12px;">Sửa</button>
+                <button class="action-btn btn-delete" onclick="deleteProduct(${p.id})" style="padding: 6px 12px; font-size: 12px;">Xóa</button>
             </div>
         `;
         container.appendChild(row);
@@ -704,14 +707,18 @@ async function saveProduct() {
     }
 }
 
-function editProduct(id, keyType, name, description, price, imageUrl, downloadUrl) {
-    document.getElementById('editProductId').value = id;
-    document.getElementById('prodName').value = name;
-    document.getElementById('prodKeyType').value = keyType;
-    document.getElementById('prodPrice').value = price;
-    document.getElementById('prodImage').value = imageUrl === 'menu_banner.png' ? '' : imageUrl;
-    document.getElementById('prodDownload').value = downloadUrl;
-    document.getElementById('prodDesc').value = description;
+function editProduct(id) {
+    const products = window.adminProducts || [];
+    const p = products.find(prod => prod.id === id);
+    if (!p) return;
+
+    document.getElementById('editProductId').value = p.id;
+    document.getElementById('prodName').value = p.name;
+    document.getElementById('prodKeyType').value = p.key_type;
+    document.getElementById('prodPrice').value = p.price;
+    document.getElementById('prodImage').value = p.image_url === 'menu_banner.png' ? '' : p.image_url;
+    document.getElementById('prodDownload').value = p.download_url || '';
+    document.getElementById('prodDesc').value = p.description || '';
 
     document.getElementById('productFormTitle').textContent = '🛍️ Sửa Sản Phẩm';
     document.getElementById('btnCancelEdit').style.display = 'block';
@@ -732,7 +739,12 @@ function cancelProductEdit() {
     document.getElementById('btnSaveProduct').textContent = 'Lưu Sản Phẩm';
 }
 
-async function deleteProduct(id, keyType) {
+async function deleteProduct(id) {
+    const products = window.adminProducts || [];
+    const p = products.find(prod => prod.id === id);
+    if (!p) return;
+
+    const keyType = p.key_type;
     if (!confirm(`Bạn có chắc chắn muốn xóa sản phẩm [${keyType.toUpperCase()}]? Các key tương ứng trong kho sẽ KHÔNG bị xóa nhưng không thể bán được nữa trừ khi bạn tạo lại sản phẩm trùng mã key_type.`)) return;
 
     try {
