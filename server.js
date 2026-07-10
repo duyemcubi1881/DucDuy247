@@ -115,6 +115,19 @@ async function initDb() {
             );
         `);
 
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                key_type VARCHAR(50) UNIQUE NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                description TEXT,
+                price INT NOT NULL,
+                image_url TEXT,
+                download_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
         // Alter tables to add columns if they don't exist (safety migrate)
         await pool.query(`
             ALTER TABLE users ADD COLUMN IF NOT EXISTS funlink_completed_today INT DEFAULT 0;
@@ -126,6 +139,7 @@ async function initDb() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INT DEFAULT 0;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS created_ip VARCHAR(100);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_url TEXT;
+            ALTER TABLE keys_inventory ALTER COLUMN key_type TYPE VARCHAR(50);
         `);
 
         // Check if default admin account exists
@@ -137,6 +151,18 @@ async function initDb() {
                 ['admin', 'ducduy2202@', today]
             );
             console.log("Default admin seeded successfully.");
+        }
+
+        // Check if products table has any products, if not, seed with defaults
+        const prodCountRes = await pool.query("SELECT COUNT(*) as count FROM products");
+        if (parseInt(prodCountRes.rows[0].count, 10) === 0) {
+            await pool.query(`
+                INSERT INTO products (key_type, name, description, price, image_url, download_url) VALUES
+                ('1h', 'Key Imgui Menu 1 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 100, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file'),
+                ('2h', 'Key Imgui Menu 2 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 150, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file'),
+                ('4h', 'Key Imgui Menu 4 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 200, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file')
+            `);
+            console.log("Seeded default products into database.");
         }
         console.log("Database initialized successfully.");
     } catch (err) {
@@ -285,16 +311,29 @@ app.get('/api/state', async (req, res) => {
             key: row.key_code
         }));
 
+        // Fetch all products
+        const productsRes = await pool.query("SELECT * FROM products ORDER BY id ASC");
+        const products = productsRes.rows;
+
         // Key stocks counts
         const stocks = {};
         const purchased = {};
-        for (const type of ['1h', '2h', '4h']) {
-            const countRes = await pool.query("SELECT COUNT(*) as count FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 0", [type]);
-            stocks[type] = parseInt(countRes.rows[0].count, 10);
+        
+        // Pre-initialize to 0
+        products.forEach(p => {
+            stocks[p.key_type] = 0;
+            purchased[p.key_type] = 0;
+        });
 
-            const purchasedRes = await pool.query("SELECT COUNT(*) as count FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 1", [type]);
-            purchased[type] = parseInt(purchasedRes.rows[0].count, 10);
-        }
+        const stocksRes = await pool.query("SELECT key_type, COUNT(*) as count FROM keys_inventory WHERE is_redeemed = 0 GROUP BY key_type");
+        stocksRes.rows.forEach(row => {
+            stocks[row.key_type] = parseInt(row.count, 10);
+        });
+
+        const purchasedRes = await pool.query("SELECT key_type, COUNT(*) as count FROM keys_inventory WHERE is_redeemed = 1 GROUP BY key_type");
+        purchasedRes.rows.forEach(row => {
+            purchased[row.key_type] = parseInt(row.count, 10);
+        });
 
         res.json({
             status: "success",
@@ -312,6 +351,7 @@ app.get('/api/state', async (req, res) => {
             },
             taskHistory,
             redeemHistory,
+            products,
             stocks,
             purchased
         });
@@ -592,14 +632,24 @@ app.post('/api/purchase-key', async (req, res) => {
         return res.status(401).json({ status: "error", message: "Chưa đăng nhập!" });
     }
 
-    const { keyType, price, label } = req.body;
-    if (!['1h', '2h', '4h'].includes(keyType)) {
-        return res.json({ status: "error", message: "Gói key không hợp lệ!" });
+    const { keyType } = req.body;
+    if (!keyType) {
+        return res.json({ status: "error", message: "Thiếu loại key!" });
     }
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        // Fetch product info to get actual price and label securely
+        const prodRes = await client.query("SELECT * FROM products WHERE key_type = $1", [keyType]);
+        if (prodRes.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.json({ status: "error", message: "Sản phẩm không hợp lệ!" });
+        }
+        const product = prodRes.rows[0];
+        const price = parseInt(product.price, 10);
+        const label = product.name;
 
         // Lock user coins
         const userRes = await client.query("SELECT * FROM users WHERE username = $1 FOR UPDATE", [username]);
@@ -699,11 +749,20 @@ app.get('/api/admin/state', async (req, res) => {
         const totalUsersRes = await pool.query("SELECT COUNT(*) as count FROM users");
         const totalCoinsRes = await pool.query("SELECT SUM(coins) as sum FROM users");
 
+        // Fetch products
+        const productsRes = await pool.query("SELECT * FROM products ORDER BY id ASC");
+        const products = productsRes.rows;
+
+        // Grouped stocks aggregate
         const stocks = {};
-        for (const type of ['1h', '2h', '4h']) {
-            const countRes = await pool.query("SELECT COUNT(*) as count FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 0", [type]);
-            stocks[type] = parseInt(countRes.rows[0].count, 10);
-        }
+        products.forEach(p => {
+            stocks[p.key_type] = 0;
+        });
+
+        const stocksRes = await pool.query("SELECT key_type, COUNT(*) as count FROM keys_inventory WHERE is_redeemed = 0 GROUP BY key_type");
+        stocksRes.rows.forEach(row => {
+            stocks[row.key_type] = parseInt(row.count, 10);
+        });
 
         const usersRes = await pool.query("SELECT username, password, coins, funlink_completed_today, nhapma_completed_today, last_task_reset_date, created_ip FROM users ORDER BY id ASC");
         const users = usersRes.rows.map(row => ({
@@ -716,22 +775,24 @@ app.get('/api/admin/state', async (req, res) => {
             createdIp: row.created_ip || ''
         }));
 
-        const keyType = req.query.key_type || '4h';
-        const keysRes = await pool.query("SELECT id, key_code FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 0 ORDER BY id ASC", [keyType]);
-        const keysList = keysRes.rows.map(row => ({
-            id: row.id,
-            key: row.key_code
-        }));
+        const keyType = req.query.key_type || (products.length > 0 ? products[0].key_type : '');
+        let keysList = [];
+        if (keyType) {
+            const keysRes = await pool.query("SELECT id, key_code FROM keys_inventory WHERE key_type = $1 AND is_redeemed = 0 ORDER BY id ASC", [keyType]);
+            keysList = keysRes.rows.map(row => ({
+                id: row.id,
+                key: row.key_code
+            }));
+        }
 
         res.json({
             status: "success",
             stats: {
                 totalUsers: parseInt(totalUsersRes.rows[0].count, 10),
                 totalCoins: parseInt(totalCoinsRes.rows[0].sum || 0, 10),
-                stock1h: stocks['1h'],
-                stock2h: stocks['2h'],
-                stock4h: stocks['4h']
             },
+            products,
+            stocks,
             users,
             keysList
         });
@@ -851,6 +912,60 @@ app.post('/api/admin/clear-keys', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.json({ status: "error", message: "Lỗi hệ thống!" });
+    }
+});
+
+// --- PRODUCT MANAGEMENT ADMIN APIS ---
+app.post('/api/admin/products', async (req, res) => {
+    if (!getSessionAdmin(req)) return res.status(403).json({ status: "error", message: "Từ chối!" });
+    const { id, keyType, name, description, price, imageUrl, downloadUrl } = req.body;
+
+    if (!keyType || !name || !price) {
+        return res.json({ status: "error", message: "Vui lòng nhập đầy đủ Tên, Mã key_type và Giá sản phẩm!" });
+    }
+
+    try {
+        if (id) {
+            // Update product
+            const checkConflict = await pool.query("SELECT id FROM products WHERE key_type = $1 AND id != $2", [keyType, id]);
+            if (checkConflict.rowCount > 0) {
+                return res.json({ status: "error", message: "Mã key_type này đã tồn tại ở sản phẩm khác!" });
+            }
+
+            await pool.query(
+                "UPDATE products SET key_type = $1, name = $2, description = $3, price = $4, image_url = $5, download_url = $6 WHERE id = $7",
+                [keyType, name, description, price, imageUrl, downloadUrl, id]
+            );
+            res.json({ status: "success", message: "Đã cập nhật sản phẩm thành công!" });
+        } else {
+            // Create product
+            const checkConflict = await pool.query("SELECT id FROM products WHERE key_type = $1", [keyType]);
+            if (checkConflict.rowCount > 0) {
+                return res.json({ status: "error", message: "Mã key_type này đã tồn tại!" });
+            }
+
+            await pool.query(
+                "INSERT INTO products (key_type, name, description, price, image_url, download_url) VALUES ($1, $2, $3, $4, $5, $6)",
+                [keyType, name, description, price, imageUrl, downloadUrl]
+            );
+            res.json({ status: "success", message: "Đã thêm sản phẩm mới thành công!" });
+        }
+    } catch (err) {
+        console.error(err);
+        res.json({ status: "error", message: "Lỗi lưu sản phẩm vào database!" });
+    }
+});
+
+app.post('/api/admin/delete-product', async (req, res) => {
+    if (!getSessionAdmin(req)) return res.status(403).json({ status: "error", message: "Từ chối!" });
+    const { id, keyType } = req.body;
+
+    try {
+        await pool.query("DELETE FROM products WHERE id = $1", [id]);
+        res.json({ status: "success", message: "Đã xóa sản phẩm thành công!" });
+    } catch (err) {
+        console.error(err);
+        res.json({ status: "error", message: "Lỗi xóa sản phẩm khỏi database!" });
     }
 });
 
