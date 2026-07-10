@@ -583,6 +583,28 @@ window.switchTab = function(tabId) {
             panel.classList.remove('active');
         }
     });
+
+    // Update main dashboard viewport titles dynamically
+    const headerTitle = document.getElementById('headerTitle');
+    const headerSubtitle = document.getElementById('headerSubtitle');
+    if (headerTitle && headerSubtitle) {
+        if (tabId === 'tab-tasks') {
+            headerTitle.textContent = 'Nhiệm Vụ Hôm Nay';
+            headerSubtitle.textContent = 'Hoàn Thành Nhiệm Vụ Để Nhận Xu. Mỗi Nhiệm Vụ Có Mã Riêng';
+        } else if (tabId === 'tab-shop') {
+            headerTitle.textContent = 'Cửa Hàng App - Menu Cheat';
+            headerSubtitle.textContent = 'Đổi xu của bạn lấy các gói key ứng dụng chất lượng cao';
+        } else if (tabId === 'tab-download') {
+            headerTitle.textContent = 'Tải Về Các File App - Cheat';
+            headerSubtitle.textContent = 'Liên kết tải trực tiếp các tệp tin cài đặt ứng dụng';
+        } else if (tabId === 'tab-fix') {
+            headerTitle.textContent = 'Hướng Dẫn Sửa Lỗi';
+            headerSubtitle.textContent = 'Các bước khắc phục các sự cố thường gặp';
+        } else if (tabId === 'tab-history') {
+            headerTitle.textContent = 'Lịch Sử Hoạt Động';
+            headerSubtitle.textContent = 'Xem lại các lượt làm nhiệm vụ và đổi quà của bạn';
+        }
+    }
 };
 
 // --- POPUPS & MODALS ---
