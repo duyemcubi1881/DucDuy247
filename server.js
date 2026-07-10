@@ -124,6 +124,7 @@ async function initDb() {
                 price INT NOT NULL,
                 image_url TEXT,
                 download_url TEXT,
+                duration_text VARCHAR(50),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -140,6 +141,7 @@ async function initDb() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS created_ip VARCHAR(100);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS active_task_url TEXT;
             ALTER TABLE keys_inventory ALTER COLUMN key_type TYPE VARCHAR(50);
+            ALTER TABLE products ADD COLUMN IF NOT EXISTS duration_text VARCHAR(50);
         `);
 
         // Check if default admin account exists
@@ -157,10 +159,10 @@ async function initDb() {
         const prodCountRes = await pool.query("SELECT COUNT(*) as count FROM products");
         if (parseInt(prodCountRes.rows[0].count, 10) === 0) {
             await pool.query(`
-                INSERT INTO products (key_type, name, description, price, image_url, download_url) VALUES
-                ('1h', 'Key Imgui Menu 1 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 100, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file'),
-                ('2h', 'Key Imgui Menu 2 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 150, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file'),
-                ('4h', 'Key Imgui Menu 4 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 200, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file')
+                INSERT INTO products (key_type, name, description, price, image_url, download_url, duration_text) VALUES
+                ('1h', 'Key Imgui Menu 1 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 100, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file', '1 tiếng dùng'),
+                ('2h', 'Key Imgui Menu 2 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 150, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file', '2 tiếng dùng'),
+                ('4h', 'Key Imgui Menu 4 Giờ', '✅ Fix văng game\n✅ Sửa Esp, Fix Nháy\n✅ Tăng khả năng Anti-Ban', 200, 'menu_banner.png', 'https://www.mediafire.com/file/v2gt95n5xb7ssrd/Imgui_1.1.rar/file', '4 tiếng dùng')
             `);
             console.log("Seeded default products into database.");
         }
@@ -918,7 +920,7 @@ app.post('/api/admin/clear-keys', async (req, res) => {
 // --- PRODUCT MANAGEMENT ADMIN APIS ---
 app.post('/api/admin/products', async (req, res) => {
     if (!getSessionAdmin(req)) return res.status(403).json({ status: "error", message: "Từ chối!" });
-    const { id, keyType, name, description, price, imageUrl, downloadUrl } = req.body;
+    const { id, keyType, name, description, price, imageUrl, downloadUrl, durationText } = req.body;
 
     if (!keyType || !name || !price) {
         return res.json({ status: "error", message: "Vui lòng nhập đầy đủ Tên, Mã key_type và Giá sản phẩm!" });
@@ -933,8 +935,8 @@ app.post('/api/admin/products', async (req, res) => {
             }
 
             await pool.query(
-                "UPDATE products SET key_type = $1, name = $2, description = $3, price = $4, image_url = $5, download_url = $6 WHERE id = $7",
-                [keyType, name, description, price, imageUrl, downloadUrl, id]
+                "UPDATE products SET key_type = $1, name = $2, description = $3, price = $4, image_url = $5, download_url = $6, duration_text = $7 WHERE id = $8",
+                [keyType, name, description, price, imageUrl, downloadUrl, durationText, id]
             );
             res.json({ status: "success", message: "Đã cập nhật sản phẩm thành công!" });
         } else {
@@ -945,8 +947,8 @@ app.post('/api/admin/products', async (req, res) => {
             }
 
             await pool.query(
-                "INSERT INTO products (key_type, name, description, price, image_url, download_url) VALUES ($1, $2, $3, $4, $5, $6)",
-                [keyType, name, description, price, imageUrl, downloadUrl]
+                "INSERT INTO products (key_type, name, description, price, image_url, download_url, duration_text) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                [keyType, name, description, price, imageUrl, downloadUrl, durationText]
             );
             res.json({ status: "success", message: "Đã thêm sản phẩm mới thành công!" });
         }
