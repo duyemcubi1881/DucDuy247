@@ -76,13 +76,13 @@
                     <li>
                         <a class="nav-item" data-tab="tab-shop" onclick="switchTab('tab-shop')">
                             <span class="nav-icon">🔥</span>
-                            Imgui Menu
+                            Cửa Hàng App
                         </a>
                     </li>
                     <li>
                         <a class="nav-item" data-tab="tab-download" onclick="switchTab('tab-download')">
                             <span class="nav-icon">📥</span>
-                            Tải Về Imgui Menu
+                            Tải Về Các App
                         </a>
                     </li>
                     <li>
@@ -171,25 +171,8 @@
                TAB 5: DOWNLOAD PANEL
                ========================================================================== */ -->
             <section class="tab-panel" id="tab-download">
-                <div class="shop-grid">
-                    <div class="shop-card" style="max-width: 480px; margin: 0 auto;">
-                        <div style="background-color: rgba(59, 130, 246, 0.05); padding: 40px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-color);">
-                            <img src="rar_icon.jpg" alt="Rar file" style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--border-radius-md); box-shadow: var(--shadow-md);">
-                        </div>
-                        <div class="shop-body" style="text-align: left;">
-                            <h3 class="shop-title" style="margin-bottom: 12px; font-size: 24px;">Imgui 1.2</h3>
-                            
-                            <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; color: var(--text-muted); font-size: 14px; font-weight: 500;">
-                                <li style="display: flex; align-items: center; gap: 8px;">✅ <span style="color: var(--text-main); font-weight: 600;">Fix văng game</span></li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✅ <span style="color: var(--text-main); font-weight: 600;">Sửa Esp, Fix Nháy</span></li>
-                                <li style="display: flex; align-items: center; gap: 8px;">✅ <span style="color: var(--text-main); font-weight: 600;">Tăng khả năng Anti-Ban</span></li>
-                            </ul>
-                            
-                            <a href="https://www.mediafire.com/file/abfp1yxyx2027kr/Imgui+1.2.rar/file" target="_blank" class="btn-buy" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
-                                📥 Tải Xuống (.RAR)
-                            </a>
-                        </div>
-                    </div>
+                <div class="shop-grid" id="downloadContainer">
+                    <!-- App download cards rendered dynamically via app.js -->
                 </div>
             </section>
 

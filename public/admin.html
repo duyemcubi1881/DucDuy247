@@ -119,6 +119,12 @@
                         </a>
                     </li>
                     <li>
+                        <a class="nav-item" data-tab="tab-products" onclick="switchTab('tab-products')">
+                            <span class="nav-icon">🛍️</span>
+                            Quản Lý Sản Phẩm
+                        </a>
+                    </li>
+                    <li>
                         <a href="index.html" class="nav-item">
                             <span class="nav-icon">🏠</span>
                             Quay Lại Shop
@@ -189,19 +195,8 @@
 
             <!-- TAB 2: KEYS MANAGEMENT -->
             <section class="tab-panel" id="tab-keys">
-                <div class="admin-stat-grid">
-                    <div class="stat-card">
-                        <div class="stat-card-label">Key 1 Giờ (100 xu)</div>
-                        <div class="stat-card-value" id="statKeys1h">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-label">Key 2 Giờ (150 xu)</div>
-                        <div class="stat-card-value" id="statKeys2h">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-label">Key 4 Giờ (200 xu)</div>
-                        <div class="stat-card-value" id="statKeys4h">0</div>
-                    </div>
+                <div class="admin-stat-grid" id="keysStatGrid">
+                    <!-- Statistics cards loaded dynamically -->
                 </div>
 
                 <div class="shop-grid" style="grid-template-columns: 1fr 1fr; gap: 30px;">
@@ -212,9 +207,7 @@
                         <div class="form-group" style="margin-bottom: 16px;">
                             <label for="restockKeyType" style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Chọn Loại Key Nạp:</label>
                             <select id="restockKeyType" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
-                                <option value="1h">Key 1 Giờ (100 Xu)</option>
-                                <option value="2h">Key 2 Giờ (150 Xu)</option>
-                                <option value="4h" selected>Key 4 Giờ (200 Xu)</option>
+                                <!-- Dynamic options loaded from DB -->
                             </select>
                         </div>
 
@@ -232,9 +225,7 @@
                             <h3 class="history-title" style="margin: 0;">📦 Danh Sách Key Trong Kho</h3>
                             
                             <select id="viewKeyTypeSelect" onchange="loadKeysList()" style="padding: 8px 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
-                                <option value="1h">Xem Gói 1 Giờ</option>
-                                <option value="2h">Xem Gói 2 Giờ</option>
-                                <option value="4h" selected>Xem Gói 4 Giờ</option>
+                                <!-- Dynamic options loaded from DB -->
                             </select>
                         </div>
 
@@ -255,6 +246,61 @@
                         
                         <div style="margin-top: 15px; text-align: right;">
                             <button class="btn-admin btn-admin-danger" onclick="clearAllKeysOfType()" style="padding: 8px 16px; font-size: 12px;">Xóa Toàn Bộ Key Loại Này</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: PRODUCTS MANAGEMENT -->
+            <section class="tab-panel" id="tab-products">
+                <div class="shop-grid" style="grid-template-columns: 1fr 1.3fr; gap: 30px; align-items: start;">
+                    <!-- Panel thêm/sửa sản phẩm -->
+                    <div class="admin-card" style="margin: 0;">
+                        <h3 class="history-title" id="productFormTitle">🛍️ Thêm Sản Phẩm Mới</h3>
+                        
+                        <input type="hidden" id="editProductId" value="">
+                        
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Tên Sản Phẩm:</label>
+                            <input type="text" id="prodName" placeholder="Ví dụ: Key Imgui Menu 1 Giờ" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Mã Key / Loại Key (key_type):</label>
+                            <input type="text" id="prodKeyType" placeholder="Ví dụ: 1h, 2h, freefire_vip" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Giá Đổi (Xu):</label>
+                            <input type="number" id="prodPrice" placeholder="Ví dụ: 100" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Đường Dẫn Ảnh (Banner):</label>
+                            <input type="text" id="prodImage" placeholder="Ví dụ: menu_banner.png hoặc link ảnh web" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Link Tải App (Để trống nếu không có):</label>
+                            <input type="text" id="prodDownload" placeholder="Ví dụ: https://www.mediafire.com/... hoặc bỏ trống" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-weight: 600; outline: none;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 18px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">Mô tả sản phẩm / Hướng dẫn tải:</label>
+                            <textarea id="prodDesc" placeholder="Nhập mô tả sản phẩm..." style="width: 100%; height: 80px; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px; line-height: 1.5; resize: vertical; outline: none;"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-admin" onclick="cancelProductEdit()" id="btnCancelEdit" style="flex: 1; display: none; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main);">Hủy</button>
+                            <button class="btn-admin" onclick="saveProduct()" id="btnSaveProduct" style="flex: 2; width: 100%;">Lưu Sản Phẩm</button>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách các sản phẩm đang có -->
+                    <div class="admin-card" style="margin: 0;">
+                        <h3 class="history-title">🛍️ Danh Sách Sản Phẩm</h3>
+                        <div id="adminProductsContainer" style="display: flex; flex-direction: column; gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px;">
+                            <!-- Dynamic product rows loaded via JS -->
                         </div>
                     </div>
                 </div>

@@ -108,6 +108,9 @@ function updateUI(data) {
     // Render shop dynamically
     renderShop(data);
 
+    // Render downloads dynamically
+    renderDownloads(data);
+
     // Render lists
     renderHistoryLists(data.taskHistory, data.redeemHistory);
 }
@@ -330,18 +333,23 @@ function renderShop(data) {
     shopContainer.innerHTML = '';
 
     const user = data.user;
-    const stocks = data.stocks;
-    
-    const purchased = data.purchased || { '1h': 0, '2h': 0, '4h': 0 };
+    const products = data.products || [];
+    const stocks = data.stocks || {};
+    const purchased = data.purchased || {};
 
-    const items = [
-        { type: '1h', label: 'Key Imgui Menu 1 Giờ', price: 100, stock: stocks['1h'], bought: purchased['1h'] },
-        { type: '2h', label: 'Key Imgui Menu 2 Giờ', price: 150, stock: stocks['2h'], bought: purchased['2h'] },
-        { type: '4h', label: 'Key Imgui Menu 4 Giờ', price: 200, stock: stocks['4h'], bought: purchased['4h'] }
-    ];
+    if (products.length === 0) {
+        shopContainer.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted); font-weight: 700;">
+                Hiện tại cửa hàng chưa có sản phẩm nào.
+            </div>
+        `;
+        return;
+    }
 
-    items.forEach(item => {
-        const isOutOfStock = item.stock <= 0;
+    products.forEach(item => {
+        const stock = stocks[item.key_type] || 0;
+        const bought = purchased[item.key_type] || 0;
+        const isOutOfStock = stock <= 0;
         const canAfford = user.coins >= item.price;
         
         let btnHtml = '';
@@ -350,24 +358,24 @@ function renderShop(data) {
         } else if (!canAfford) {
             btnHtml = `<button class="btn btn-secondary" disabled style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; cursor: not-allowed; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-muted);">Không Đủ Xu (Cần ${item.price} Xu)</button>`;
         } else {
-            btnHtml = `<button class="btn btn-primary" onclick="purchaseKey('${item.type}', ${item.price}, '${item.label}')" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; background: var(--primary); color: #fff; border: none; cursor: pointer;">Đổi Ngay</button>`;
+            btnHtml = `<button class="btn btn-primary" onclick="purchaseKey('${item.key_type}', ${item.price}, '${item.name}')" style="width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-weight: 700; background: var(--primary); color: #fff; border: none; cursor: pointer;">Đổi Ngay</button>`;
         }
 
         const card = document.createElement('div');
         card.className = 'shop-card';
         card.innerHTML = `
-            <div class="shop-banner" style="background-image: url('menu_banner.png');">
+            <div class="shop-banner" style="background-image: url('${item.image_url || 'menu_banner.png'}');">
                 <span class="shop-badge">Key VIP</span>
             </div>
             <div class="shop-body" style="padding: 24px; text-align: center;">
-                <h3 class="shop-title" style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">${item.label}</h3>
+                <h3 class="shop-title" style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">${item.name}</h3>
                 <div class="shop-price" style="font-size: 24px; font-weight: 800; color: #f59e0b; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     ${item.price} <img src="coin_icon.png" class="coin-icon-img" alt="Xu" style="width: 22px; height: 22px; object-fit: contain;">
                 </div>
                 
                 <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
-                    <span>📦 Kho: <strong style="color: var(--text-main);">${item.stock} key</strong></span>
-                    <span>🛒 Đã mua: <strong style="color: var(--text-main);">${item.bought}</strong></span>
+                    <span>📦 Kho: <strong style="color: var(--text-main);">${stock} key</strong></span>
+                    <span>🛒 Đã mua: <strong style="color: var(--text-main);">${bought}</strong></span>
                 </div>
                 
                 ${btnHtml}
@@ -375,6 +383,48 @@ function renderShop(data) {
         `;
 
         shopContainer.appendChild(card);
+    });
+}
+
+function renderDownloads(data) {
+    const downloadContainer = document.getElementById('downloadContainer');
+    if (!downloadContainer) return;
+
+    downloadContainer.innerHTML = '';
+    const products = data.products || [];
+    
+    // Filter products that have a download_url defined
+    const downloadProducts = products.filter(p => p.download_url && p.download_url.trim() !== '');
+
+    if (downloadProducts.length === 0) {
+        downloadContainer.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted); font-weight: 700;">
+                Hiện tại chưa có ứng dụng nào được cập nhật link tải.
+            </div>
+        `;
+        return;
+    }
+
+    downloadProducts.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'shop-card';
+        card.style.maxWidth = '480px';
+        card.style.margin = '0 auto';
+        card.innerHTML = `
+            <div style="background-color: rgba(59, 130, 246, 0.05); padding: 40px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-color);">
+                <img src="${item.image_url || 'rar_icon.jpg'}" alt="${item.name}" style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--border-radius-md); box-shadow: var(--shadow-md); max-height: 120px;">
+            </div>
+            <div class="shop-body" style="text-align: left; padding: 24px;">
+                <h3 class="shop-title" style="margin-bottom: 12px; font-size: 24px; font-weight: 700; color: var(--text-main);">${item.name}</h3>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; font-weight: 500; white-space: pre-line;">
+                    ${item.description || 'Không có mô tả sản phẩm.'}
+                </p>
+                <a href="${item.download_url}" target="_blank" class="btn-buy" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-weight: 700; width: 100%;">
+                    📥 Tải Xuống
+                </a>
+            </div>
+        `;
+        downloadContainer.appendChild(card);
     });
 }
 
